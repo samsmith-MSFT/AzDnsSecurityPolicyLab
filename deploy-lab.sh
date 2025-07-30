@@ -40,7 +40,48 @@ if [[ -z "$SUBSCRIPTION_ID" || "$SUBSCRIPTION_ID" == "null" || "$SUBSCRIPTION_ID
     exit 1
 fi
 
+# Function to validate password requirements
+validate_password() {
+    local password="$1"
+    
+    # Check length (12-123 characters)
+    if [[ ${#password} -lt 12 || ${#password} -gt 123 ]]; then
+        echo "Error: Password must be 12-123 characters long"
+        return 1
+    fi
+    
+    # Check for uppercase letter
+    if [[ ! "$password" =~ [A-Z] ]]; then
+        echo "Error: Password must contain at least one uppercase letter"
+        return 1
+    fi
+    
+    # Check for lowercase letter
+    if [[ ! "$password" =~ [a-z] ]]; then
+        echo "Error: Password must contain at least one lowercase letter"
+        return 1
+    fi
+    
+    # Check for number
+    if [[ ! "$password" =~ [0-9] ]]; then
+        echo "Error: Password must contain at least one number"
+        return 1
+    fi
+    
+    # Check for special character
+    if [[ ! "$password" =~ [^a-zA-Z0-9] ]]; then
+        echo "Error: Password must contain at least one special character"
+        return 1
+    fi
+    
+    return 0
+}
+
 # Prompt for VM password with confirmation
+echo ""
+echo "Password Requirements:"
+echo "- Must be 12-123 characters long"
+echo "- Must contain uppercase, lowercase, numbers, and special characters"
 echo ""
 while true; do
     read -s -p "Enter password for Ubuntu VM admin user ($VM_ADMIN_USERNAME): " VM_PASSWORD
@@ -48,6 +89,12 @@ while true; do
     
     if [[ -z "$VM_PASSWORD" ]]; then
         echo "Error: VM password cannot be empty"
+        continue
+    fi
+    
+    # Validate password requirements
+    if ! validate_password "$VM_PASSWORD"; then
+        echo ""
         continue
     fi
     
