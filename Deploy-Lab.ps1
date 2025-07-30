@@ -206,18 +206,16 @@ $null = az dns-resolver policy vnet-link create `
 # Create DNS Domain List
 Write-Host ""
 Write-Host "Creating DNS domain list: $domainListName"
-$null = az dns-resolver policy dns-security-rule domain-list create `
+$null = az dns-resolver domain-list create `
     --resource-group $resourceGroupName `
-    --policy-name $dnsSecurityPolicyName `
-    --name $domainListName `
+    --dns-resolver-domain-list-name $domainListName `
     --domains "malicious.contoso.com." "exploit.adatum.com." `
     --location $location
 
 # Get Domain List resource ID
-$domainListId = az dns-resolver policy dns-security-rule domain-list show `
+$domainListId = az dns-resolver domain-list show `
     --resource-group $resourceGroupName `
-    --policy-name $dnsSecurityPolicyName `
-    --name $domainListName `
+    --dns-resolver-domain-list-name $domainListName `
     --query id -o tsv
 
 # Create DNS Security Rule

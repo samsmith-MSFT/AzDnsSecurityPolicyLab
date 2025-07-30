@@ -178,18 +178,16 @@ az dns-resolver policy vnet-link create \
 # Create DNS Domain List
 echo ""
 echo "Creating DNS domain list: $DOMAIN_LIST_NAME"
-az dns-resolver policy dns-security-rule domain-list create \
+az dns-resolver domain-list create \
     --resource-group "$RESOURCE_GROUP_NAME" \
-    --policy-name "$DNS_SECURITY_POLICY_NAME" \
-    --name "$DOMAIN_LIST_NAME" \
+    --dns-resolver-domain-list-name "$DOMAIN_LIST_NAME" \
     --domains "malicious.contoso.com." "exploit.adatum.com." \
     --location "$LOCATION"
 
 # Get the DNS Domain List resource ID
-DOMAIN_LIST_ID=$(az dns-resolver policy dns-security-rule domain-list show \
+DOMAIN_LIST_ID=$(az dns-resolver domain-list show \
     --resource-group "$RESOURCE_GROUP_NAME" \
-    --policy-name "$DNS_SECURITY_POLICY_NAME" \
-    --name "$DOMAIN_LIST_NAME" \
+    --dns-resolver-domain-list-name "$DOMAIN_LIST_NAME" \
     --query id -o tsv)
 
 # Create DNS Security Rule with Block action
