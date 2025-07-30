@@ -75,11 +75,6 @@ Edit the `answers.json` file and add your Azure subscription ID:
 }
 ```
 
-You can find your subscription ID by running:
-```bash
-az account list --output table
-```
-
 ### 3. Deploy the Lab
 
 Run the deployment script:
