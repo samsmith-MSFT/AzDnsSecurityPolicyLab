@@ -99,6 +99,14 @@ try {
     exit 1
 }
 
+# Configure Azure CLI to allow preview extensions without prompts
+Write-Host "Configuring Azure CLI extensions..."
+try {
+    $null = az config set extension.dynamic_install_allow_preview=true
+} catch {
+    Write-Warning "Could not configure extension settings, continuing anyway..."
+}
+
 # Set the subscription context
 Write-Host "Setting subscription context to: $subscriptionId"
 try {
@@ -198,7 +206,7 @@ $null = az dns-resolver policy vnet-link create `
 # Create DNS Domain List
 Write-Host ""
 Write-Host "Creating DNS domain list: $domainListName"
-$null = az dns-resolver policy dns-domain-list create `
+$null = az dns-resolver policy dns-security-rule domain-list create `
     --resource-group $resourceGroupName `
     --policy-name $dnsSecurityPolicyName `
     --name $domainListName `
@@ -206,7 +214,7 @@ $null = az dns-resolver policy dns-domain-list create `
     --location $location
 
 # Get Domain List resource ID
-$domainListId = az dns-resolver policy dns-domain-list show `
+$domainListId = az dns-resolver policy dns-security-rule domain-list show `
     --resource-group $resourceGroupName `
     --policy-name $dnsSecurityPolicyName `
     --name $domainListName `

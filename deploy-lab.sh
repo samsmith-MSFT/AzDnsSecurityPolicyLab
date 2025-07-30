@@ -68,6 +68,10 @@ echo ""
 echo "Logging into Azure..."
 az login --use-device-code
 
+# Configure Azure CLI to allow preview extensions without prompts
+echo "Configuring Azure CLI extensions..."
+az config set extension.dynamic_install_allow_preview=true
+
 # Set the subscription context
 echo "Setting subscription context to: $SUBSCRIPTION_ID"
 az account set --subscription "$SUBSCRIPTION_ID"
@@ -174,7 +178,7 @@ az dns-resolver policy vnet-link create \
 # Create DNS Domain List
 echo ""
 echo "Creating DNS domain list: $DOMAIN_LIST_NAME"
-az dns-resolver policy dns-domain-list create \
+az dns-resolver policy dns-security-rule domain-list create \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --policy-name "$DNS_SECURITY_POLICY_NAME" \
     --name "$DOMAIN_LIST_NAME" \
@@ -182,7 +186,7 @@ az dns-resolver policy dns-domain-list create \
     --location "$LOCATION"
 
 # Get the DNS Domain List resource ID
-DOMAIN_LIST_ID=$(az dns-resolver policy dns-domain-list show \
+DOMAIN_LIST_ID=$(az dns-resolver policy dns-security-rule domain-list show \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --policy-name "$DNS_SECURITY_POLICY_NAME" \
     --name "$DOMAIN_LIST_NAME" \
