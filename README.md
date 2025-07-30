@@ -161,7 +161,7 @@ DNSQueryLogs
 
 // View blocked DNS queries only
 DNSQueryLogs
-| where ResolverPolicyRuleAction == "Block"
+| where ResolverPolicyRuleAction == "Deny"
 | project TimeGenerated, QueryName, SourceIpAddress, ResolverPolicyRuleAction, ResolverPolicyDomainListId
 | order by TimeGenerated desc
 
@@ -173,7 +173,8 @@ DNSQueryLogs
 // Analyze query patterns by source IP and policy action
 DNSQueryLogs
 | summarize AllowedQueries = countif(ResolverPolicyRuleAction == "Allow"),
-            BlockedQueries = countif(ResolverPolicyRuleAction == "Block")
+            BlockedQueries = countif(ResolverPolicyRuleAction == "Deny"),
+            NoMatchQueries = countif(ResolverPolicyRuleAction == "NoMatch")
             by SourceIpAddress
 | order by BlockedQueries desc
 
@@ -186,13 +187,14 @@ DNSQueryLogs
 // DNS query analysis by hour with policy actions
 DNSQueryLogs
 | summarize AllowedCount = countif(ResolverPolicyRuleAction == "Allow"),
-            BlockedCount = countif(ResolverPolicyRuleAction == "Block")
+            BlockedCount = countif(ResolverPolicyRuleAction == "Deny"),
+            NoMatchCount = countif(ResolverPolicyRuleAction == "NoMatch")
             by bin(TimeGenerated, 1h)
 | order by TimeGenerated desc
 
 // Security-focused query: Show all blocked malicious domains
 DNSQueryLogs
-| where ResolverPolicyRuleAction == "Block"
+| where ResolverPolicyRuleAction == "Deny"
 | where QueryName contains "malicious" or QueryName contains "exploit"
 | project TimeGenerated, QueryName, SourceIpAddress, ResponseCode
 | order by TimeGenerated desc
@@ -208,7 +210,7 @@ DNSQueryLogs
 - `TimeGenerated`: Timestamp when the log was created
 - `QueryName`: Domain being queried (e.g., "malicious.contoso.com")
 - `SourceIpAddress`: IP address that made the DNS query
-- `ResolverPolicyRuleAction`: Policy action taken ("Allow", "Block", "Alert") - use this to identify blocked queries
+- `ResolverPolicyRuleAction`: Policy action taken ("Allow", "Deny", "Alert", "NoMatch") - use this to identify blocked queries
 - `ResolverPolicyId`: ID of the security policy that processed the query
 - `VirtualNetworkId`: ID of the virtual network where query originated
 
@@ -236,7 +238,7 @@ The DNS security policy automatically generates diagnostic logs for all DNS quer
 // Security Alert: High volume of blocked queries from single source
 DNSQueryLogs
 | where TimeGenerated > ago(1h)
-| where ResolverPolicyRuleAction == "Block"
+| where ResolverPolicyRuleAction == "Deny"
 | summarize BlockedCount = count() by SourceIpAddress
 | where BlockedCount > 10
 | order by BlockedCount desc
@@ -245,11 +247,12 @@ DNSQueryLogs
 DNSQueryLogs
 | where TimeGenerated > ago(24h)
 | summarize TotalQueries = count(),
-            BlockedQueries = countif(ResolverPolicyRuleAction == "Block"),
-            AllowedQueries = countif(ResolverPolicyRuleAction == "Allow")
+            BlockedQueries = countif(ResolverPolicyRuleAction == "Deny"),
+            AllowedQueries = countif(ResolverPolicyRuleAction == "Allow"),
+            NoMatchQueries = countif(ResolverPolicyRuleAction == "NoMatch")
             by bin(TimeGenerated, 1h)
 | extend BlockedPercentage = round((BlockedQueries * 100.0) / TotalQueries, 2)
-| project TimeGenerated, TotalQueries, BlockedQueries, AllowedQueries, BlockedPercentage
+| project TimeGenerated, TotalQueries, BlockedQueries, AllowedQueries, NoMatchQueries, BlockedPercentage
 
 // Forensic Analysis: Detailed view of specific domain queries
 DNSQueryLogs
@@ -276,7 +279,7 @@ Set up proactive monitoring with Azure Monitor alerts:
 // Alert query: Detect potential DNS tunneling attempts
 DNSQueryLogs
 | where TimeGenerated > ago(5m)
-| where ResolverPolicyRuleAction == "Block"
+| where ResolverPolicyRuleAction == "Deny"
 | summarize BlockedCount = count() by SourceIpAddress
 | where BlockedCount > 5
 ```
