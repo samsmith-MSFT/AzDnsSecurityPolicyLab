@@ -149,6 +149,26 @@ az vm create \
     --location "$LOCATION" \
     --tags "Purpose=DNS-Security-Lab"
 
+# Create storage account for boot diagnostics
+echo ""
+echo "Creating storage account for boot diagnostics..."
+STORAGE_ACCOUNT_NAME="sa$(echo $RESOURCE_GROUP_NAME | tr -d '-' | tr '[:upper:]' '[:lower:]')$(date +%s | tail -c 6)"
+az storage account create \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --name "$STORAGE_ACCOUNT_NAME" \
+    --location "$LOCATION" \
+    --sku Standard_LRS \
+    --kind StorageV2 \
+    --tags "Purpose=DNS-Security-Lab"
+
+# Enable boot diagnostics
+echo ""
+echo "Enabling boot diagnostics for VM: $VM_NAME"
+az vm boot-diagnostics enable \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --name "$VM_NAME" \
+    --storage "$STORAGE_ACCOUNT_NAME"
+
 # Create DNS Security Policy
 echo ""
 echo "Creating DNS security policy: $DNS_SECURITY_POLICY_NAME"
