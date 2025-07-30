@@ -9,7 +9,7 @@ This lab creates a complete Azure environment with:
 - **Virtual Network** with an Ubuntu 22.04 LTS virtual machine (no public IP - serial console access)
 - **Azure DNS Security Policy** linked to the virtual network
 - **DNS Domain List** with malicious domains (`malicious.contoso.com.`, `exploit.adatum.com.`)
-- **DNS Security Rules** to block specific domains with ServFail response
+- **DNS Security Rules** to block specific domains with blockpolicy.azuredns.invalid response
 - **Network Security Group** for internal access only
 - **Log Analytics Workspace** for DNS query monitoring and diagnostics
 - **Diagnostic Settings** configured to capture all DNS security events
@@ -101,7 +101,7 @@ After deployment, access your VM via the Azure Portal:
 
 Test DNS blocking from the VM:
 ```bash
-# Test blocked domains (should return SERVFAIL)
+# Test blocked domains (should return blockpolicy.azuredns.invalid)
 dig malicious.contoso.com
 dig exploit.adatum.com
 
@@ -115,7 +115,7 @@ dig @8.8.8.8 google.com  # Test with external DNS for comparison
 ```
 
 **Expected Results:**
-- **Blocked domains**: Should show `status: SERVFAIL` or no response
+- **Blocked domains**: Should return `blockpolicy.azuredns.invalid`
 - **Allowed domains**: Should return IP addresses normally
 
 ### 5. Monitor DNS Activity
@@ -303,7 +303,7 @@ The lab creates a DNS security policy with the following configuration:
 
 - **Policy Name**: `dns-security-policy-lab`
 - **Action**: Block
-- **Response Code**: ServFail
+- **Response Code**: blockpolicy.azuredns.invalid
 - **Priority**: 100
 - **State**: Enabled
 - **Blocked Domains**:
@@ -335,12 +335,12 @@ The lab creates a DNS security policy with the following configuration:
 # Install dig if not present
 sudo apt update && sudo apt install dnsutils -y
 
-# Test blocked domains (should show SERVFAIL)
+# Test blocked domains (should return blockpolicy.azuredns.invalid)
 dig malicious.contoso.com
-# Expected: status: SERVFAIL, no IP address returned
+# Expected: blockpolicy.azuredns.invalid
 
 dig exploit.adatum.com
-# Expected: status: SERVFAIL, no IP address returned
+# Expected: blockpolicy.azuredns.invalid
 
 # Test allowed domains (should resolve normally)
 dig google.com
