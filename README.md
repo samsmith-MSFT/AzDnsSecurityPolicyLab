@@ -55,7 +55,6 @@ This lab creates a complete Azure environment with:
 
 The Codespaces devcontainer includes:
 - Azure CLI (latest version)
-- PowerShell 
 - jq JSON processor
 - All required VS Code extensions
 
@@ -373,21 +372,6 @@ dig google.com +short
 
 ## 🛠️ Alternative Scripts
 
-### PowerShell Support
-
-For users who prefer PowerShell:
-
-```powershell
-# Deploy with what-if check
-.\Deploy-Lab.ps1 -WhatIf
-
-# Deploy the lab
-.\Deploy-Lab.ps1
-
-# Remove the lab
-.\Remove-Lab.ps1
-```
-
 ### Environment Validation
 
 Before deployment, you can validate your environment:
@@ -409,10 +393,8 @@ AzDnsSecurityPolicyLab/
 ├── FILE_OVERVIEW.md             # Detailed file descriptions
 ├── answers.json                 # Configuration file (update with your subscription)
 ├── answers.json.template        # Template for configuration
-├── deploy-lab.sh               # Main deployment script (Bash)
-├── Deploy-Lab.ps1              # Main deployment script (PowerShell)
-├── remove-lab.sh               # Lab cleanup script (Bash)
-├── Remove-Lab.ps1              # Lab cleanup script (PowerShell)
+├── deploy-lab.sh               # Main deployment script
+├── remove-lab.sh               # Lab cleanup script
 ├── validate-environment.sh     # Pre-deployment validation
 ├── test-dns-policy.sh          # DNS testing instructions
 └── .devcontainer/              # GitHub Codespaces configuration
