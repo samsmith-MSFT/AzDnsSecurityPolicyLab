@@ -147,7 +147,6 @@ az vm create \
     --public-ip-address "" \
     --nsg "" \
     --location "$LOCATION" \
-    --boot-diagnostics-storage "" \
     --tags "Purpose=DNS-Security-Lab"
 
 # Create DNS Security Policy
