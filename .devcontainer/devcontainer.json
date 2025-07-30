@@ -1,0 +1,31 @@
+{
+  "name": "Azure DNS Security Policy Lab",
+  "image": "mcr.microsoft.com/devcontainers/base:1-focal",
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": "true",
+      "configureZshAsDefaultShell": "true",
+      "installOhMyZsh": "true",
+      "upgradePackages": "true"
+    },
+    "ghcr.io/devcontainers/features/git-lfs:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/powershell:1": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.azure-account",
+        "ms-azuretools.vscode-azurecli"
+      ]
+    }
+  },
+  "postCreateCommand": "chmod +x *.sh",
+  "remoteUser": "vscode"
+}
