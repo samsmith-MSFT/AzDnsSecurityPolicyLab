@@ -198,7 +198,7 @@ az dns-resolver policy dns-security-rule create \
     --policy-name "$DNS_SECURITY_POLICY_NAME" \
     --name "$SECURITY_RULE_NAME" \
     --priority 100 \
-    --action "{'actionType':'Block','blockResponseCode':'ServFail'}" \
+    --action "{action-type:Block}" \
     --domain-lists "[{'id':'$DOMAIN_LIST_ID'}]" \
     --rule-state "Enabled" \
     --location "$LOCATION"

@@ -221,7 +221,7 @@ $domainListId = az dns-resolver domain-list show `
 # Create DNS Security Rule
 Write-Host ""
 Write-Host "Creating DNS security rule: $securityRuleName"
-$actionConfig = "{'actionType':'Block','blockResponseCode':'ServFail'}"
+$actionConfig = "{action-type:Block}"
 $domainListConfig = "[{'id':'$domainListId'}]"
 $null = az dns-resolver policy dns-security-rule create `
     --resource-group $resourceGroupName `
