@@ -71,6 +71,7 @@ az login --use-device-code
 # Configure Azure CLI to allow preview extensions without prompts
 echo "Configuring Azure CLI extensions..."
 az config set extension.dynamic_install_allow_preview=true
+az config set extension.use_dynamic_install=yes_without_prompt
 
 # Set the subscription context
 echo "Setting subscription context to: $SUBSCRIPTION_ID"
