@@ -23,6 +23,6 @@
       ]
     }
   },
-  "postCreateCommand": "chmod +x *.sh",
+  "postCreateCommand": "bash chmod +x *.sh",
   "remoteUser": "vscode"
 }
