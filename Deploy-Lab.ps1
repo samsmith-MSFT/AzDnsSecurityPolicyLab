@@ -156,7 +156,6 @@ $null = az vm create `
     --public-ip-address '""' `
     --nsg '""' `
     --location $location `
-    --disable-password-authentication false `
     --boot-diagnostics-storage '""' `
     --tags "Purpose=DNS-Security-Lab"
 

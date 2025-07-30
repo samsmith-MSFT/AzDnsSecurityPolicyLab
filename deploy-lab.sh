@@ -130,7 +130,6 @@ az vm create \
     --public-ip-address "" \
     --nsg "" \
     --location "$LOCATION" \
-    --disable-password-authentication false \
     --boot-diagnostics-storage "" \
     --tags "Purpose=DNS-Security-Lab"
 
