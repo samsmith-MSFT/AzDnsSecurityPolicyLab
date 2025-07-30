@@ -1,5 +1,5 @@
 {
-  "subscriptionId": "",
+  "subscriptionId": "YOUR-SUBSCRIPTION-ID-HERE",
   "resourceGroupName": "rg-dns-security-lab",
   "location": "eastus2",
   "vnetName": "vnet-dns-lab",
