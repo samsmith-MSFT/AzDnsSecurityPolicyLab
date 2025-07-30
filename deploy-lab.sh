@@ -40,15 +40,28 @@ if [[ -z "$SUBSCRIPTION_ID" || "$SUBSCRIPTION_ID" == "null" || "$SUBSCRIPTION_ID
     exit 1
 fi
 
-# Prompt for VM password
+# Prompt for VM password with confirmation
 echo ""
-read -s -p "Enter password for Ubuntu VM admin user ($VM_ADMIN_USERNAME): " VM_PASSWORD
-echo ""
-
-if [[ -z "$VM_PASSWORD" ]]; then
-    echo "Error: VM password cannot be empty"
-    exit 1
-fi
+while true; do
+    read -s -p "Enter password for Ubuntu VM admin user ($VM_ADMIN_USERNAME): " VM_PASSWORD
+    echo ""
+    
+    if [[ -z "$VM_PASSWORD" ]]; then
+        echo "Error: VM password cannot be empty"
+        continue
+    fi
+    
+    read -s -p "Confirm password: " VM_PASSWORD_CONFIRM
+    echo ""
+    
+    if [[ "$VM_PASSWORD" == "$VM_PASSWORD_CONFIRM" ]]; then
+        echo "Password confirmed successfully."
+        break
+    else
+        echo "Error: Passwords do not match. Please try again."
+        echo ""
+    fi
+done
 
 # Login to Azure with device code
 echo ""

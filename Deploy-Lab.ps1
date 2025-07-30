@@ -66,15 +66,28 @@ if ($WhatIf) {
     exit 0
 }
 
-# Prompt for VM password
+# Prompt for VM password with confirmation
 Write-Host ""
-$vmPassword = Read-Host "Enter password for Ubuntu VM admin user ($vmAdminUsername)" -AsSecureString
-$vmPasswordText = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vmPassword))
-
-if ([string]::IsNullOrEmpty($vmPasswordText)) {
-    Write-Error "Error: VM password cannot be empty"
-    exit 1
-}
+do {
+    $vmPassword = Read-Host "Enter password for Ubuntu VM admin user ($vmAdminUsername)" -AsSecureString
+    $vmPasswordText = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vmPassword))
+    
+    if ([string]::IsNullOrEmpty($vmPasswordText)) {
+        Write-Host "Error: VM password cannot be empty" -ForegroundColor Red
+        continue
+    }
+    
+    $vmPasswordConfirm = Read-Host "Confirm password" -AsSecureString
+    $vmPasswordConfirmText = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($vmPasswordConfirm))
+    
+    if ($vmPasswordText -eq $vmPasswordConfirmText) {
+        Write-Host "Password confirmed successfully." -ForegroundColor Green
+        break
+    } else {
+        Write-Host "Error: Passwords do not match. Please try again." -ForegroundColor Red
+        Write-Host ""
+    }
+} while ($true)
 
 # Login to Azure
 Write-Host ""
