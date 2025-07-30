@@ -82,6 +82,8 @@ Run the deployment script:
 ./deploy-lab.sh
 ```
 
+> **Note**: If you get "Permission denied", run `chmod +x *.sh` first, or use `bash deploy-lab.sh`
+
 The script will:
 - Prompt for Azure authentication via device code
 - Request a secure password for the VM
@@ -425,6 +427,11 @@ AzDnsSecurityPolicyLab/
 ## ❓ Troubleshooting
 
 ### Common Issues
+
+**"Permission denied" when running scripts**
+- This happens when shell scripts don't have execute permissions
+- Fix with: `chmod +x *.sh` (should be automatic in Codespaces)
+- If still having issues, run: `bash deploy-lab.sh` instead of `./deploy-lab.sh`
 
 **"No subscription found"**
 - Ensure you've updated `answers.json` with your subscription ID
