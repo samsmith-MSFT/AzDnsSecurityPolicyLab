@@ -247,11 +247,12 @@ Write-Host "Configuring diagnostic settings for DNS Security Policy..."
 $diagnosticLogsConfig = @"
 [
     {
-        "category": "DnsQueryLogs",
+        "category": "DnsResponse",
+        "categoryGroup": null,
         "enabled": true,
         "retentionPolicy": {
-            "enabled": false,
-            "days": 0
+            "days": 0,
+            "enabled": false
         }
     }
 ]

@@ -220,11 +220,12 @@ az monitor diagnostic-settings create \
     --workspace "$LOG_ANALYTICS_WORKSPACE_ID" \
     --logs '[
         {
-            "category": "DnsQueryLogs",
+            "category": "DnsResponse",
+            "categoryGroup": null,
             "enabled": true,
             "retentionPolicy": {
-                "enabled": false,
-                "days": 0
+                "days": 0,
+                "enabled": false
             }
         }
     ]'
