@@ -221,7 +221,6 @@ az monitor diagnostic-settings create \
     --logs '[
         {
             "category": "DnsResponse",
-            "categoryGroup": null,
             "enabled": true,
             "retentionPolicy": {
                 "days": 0,

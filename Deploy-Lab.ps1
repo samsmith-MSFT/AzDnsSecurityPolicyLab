@@ -248,7 +248,6 @@ $diagnosticLogsConfig = @"
 [
     {
         "category": "DnsResponse",
-        "categoryGroup": null,
         "enabled": true,
         "retentionPolicy": {
             "days": 0,
