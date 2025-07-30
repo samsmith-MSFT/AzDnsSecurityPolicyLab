@@ -159,9 +159,9 @@ DNSQueryLogs
 | project TimeGenerated, QueryName, SourceIpAddress, ResponseCode, ResolverPolicyRuleAction
 | order by TimeGenerated desc
 
-// View blocked DNS queries only (ServFail responses)
+// View blocked DNS queries only
 DNSQueryLogs
-| where ResponseCode == 2  // SERVFAIL = 2
+| where ResolverPolicyRuleAction == "Block"
 | project TimeGenerated, QueryName, SourceIpAddress, ResolverPolicyRuleAction, ResolverPolicyDomainListId
 | order by TimeGenerated desc
 
@@ -201,7 +201,6 @@ DNSQueryLogs
 ### Understanding DNS Response Codes
 
 - **0**: NOERROR (successful query)
-- **2**: SERVFAIL (server failure - typically for blocked queries)
 - **3**: NXDOMAIN (domain does not exist)
 
 ### Key DNSQueryLogs Table Fields
@@ -209,8 +208,7 @@ DNSQueryLogs
 - `TimeGenerated`: Timestamp when the log was created
 - `QueryName`: Domain being queried (e.g., "malicious.contoso.com")
 - `SourceIpAddress`: IP address that made the DNS query
-- `ResponseCode`: DNS response code (2 = SERVFAIL for blocked queries)
-- `ResolverPolicyRuleAction`: Policy action taken ("Allow", "Block", "Alert")
+- `ResolverPolicyRuleAction`: Policy action taken ("Allow", "Block", "Alert") - use this to identify blocked queries
 - `ResolverPolicyId`: ID of the security policy that processed the query
 - `VirtualNetworkId`: ID of the virtual network where query originated
 
@@ -411,7 +409,7 @@ AzDnsSecurityPolicyLab/
 
 ### DNS Security Policy
 - Blocks malicious domains at the DNS level
-- Returns ServFail response for blocked queries
+- Returns blockpolicy.azuredns.invalid response for blocked queries
 - Linked to virtual network for automatic protection
 - Configurable priority and response types
 
@@ -437,7 +435,7 @@ AzDnsSecurityPolicyLab/
 - Wait 2-3 minutes after deployment for DNS propagation
 - Ensure domains have trailing dots (malicious.contoso.com.)
 - Check VM is using Azure DNS (should be automatic)
-- Test with: `dig malicious.contoso.com` (should show SERVFAIL status)
+- Test with: `dig malicious.contoso.com` (should return blockpolicy.azuredns.invalid)
 - Verify policy is linked: Check virtual network links in Azure Portal
 
 **"Cannot access VM"**
