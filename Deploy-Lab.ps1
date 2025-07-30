@@ -314,9 +314,9 @@ Write-Host "5. Login with username: $vmAdminUsername"
 Write-Host "6. Use the password you provided during deployment"
 Write-Host ""
 Write-Host "To test DNS blocking from the VM serial console, try:" -ForegroundColor Yellow
-Write-Host "nslookup malicious.contoso.com"
-Write-Host "nslookup exploit.adatum.com"
+Write-Host "dig malicious.contoso.com"
+Write-Host "dig exploit.adatum.com"
 Write-Host ""
-Write-Host "These queries should fail due to the DNS security policy." -ForegroundColor Green
-Write-Host "Test that normal domains work: nslookup google.com"
+Write-Host "These queries should return: blockpolicy.azuredns.invalid" -ForegroundColor Green
+Write-Host "Test that normal domains work: dig google.com"
 Write-Host ""
