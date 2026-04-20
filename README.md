@@ -1,11 +1,12 @@
-# Azure DNS Security Policy Lab
+# Azure DNS Security Policy & Private Resolver Lab
 
-A complete lab environment for testing and learning Azure DNS Security Policies with comprehensive monitoring capabilities. This lab demonstrates how to deploy and configure DNS security policies to block malicious domains using Azure CLI automation in GitHub Codespaces.
+A complete lab environment for testing and learning Azure DNS Security Policies and Azure DNS Private Resolver with simulated on-premises connectivity. This lab demonstrates how to deploy and configure DNS security policies to block malicious domains, and how to use a Private Resolver with on-premises DNS forwarding to resolve private endpoints — all using Azure CLI automation in GitHub Codespaces.
 
-## 🎯 Lab Overview
+## Lab Overview
 
-This lab creates a complete Azure environment with:
+This lab creates a complete Azure environment with two demos:
 
+### Demo 1: DNS Security Policy
 - **Virtual Network** with an Ubuntu 22.04 LTS virtual machine (no public IP - serial console access)
 - **Azure DNS Security Policy** linked to the virtual network
 - **DNS Domain List** with malicious domains (`malicious.contoso.com.`, `exploit.adatum.com.`)
@@ -14,51 +15,96 @@ This lab creates a complete Azure environment with:
 - **Log Analytics Workspace** for DNS query monitoring and diagnostics
 - **Diagnostic Settings** configured to capture all DNS security events
 
-## 🏗️ Architecture
+### Demo 2: Private Resolver & On-Premises DNS Forwarding
+- **Azure DNS Private Resolver** with inbound endpoint in the hub VNet
+- **Simulated on-premises environment** with a separate VNet (peered to hub)
+- **Windows Server 2022** with DNS Server role and conditional forwarder to the Private Resolver
+- **Ubuntu client VM** in the on-prem network using the Windows DNS Server
+- **Storage account** with public access disabled and a private endpoint
+- **Private DNS Zone** (`privatelink.blob.core.windows.net`) linked to the hub VNet
+- **VNet peering** connecting the on-prem and hub networks
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph AZ["Azure Subscription"]
+        subgraph RG["Resource Group: rg-dns-security-lab"]
+
+            subgraph ONPREM["On-Prem VNet: vnet-onprem-lab — 10.1.0.0/16"]
+                subgraph ONPREM_SUB["subnet-onprem — 10.1.1.0/24"]
+                    DNS_SRV["vm-dns-server\nWindows Server 2022 B2s\nIP: 10.1.1.4\nDNS Server Role"]
+                    CLIENT["vm-onprem-client\nUbuntu 22.04 B1s\nDNS: 10.1.1.4"]
+                end
+            end
+
+            subgraph HUB["Hub VNet: vnet-dns-lab — 10.0.0.0/16"]
+                subgraph SUB_VM["subnet-vm — 10.0.1.0/24"]
+                    UBUNTU["vm-ubuntu-lab\nUbuntu 22.04 B1s\nDNS Security Policy Test"]
+                end
+                subgraph SUB_RESOLVER["subnet-resolver-inbound — 10.0.2.0/28\n(delegated: Microsoft.Network/dnsResolvers)"]
+                    RESOLVER["DNS Private Resolver\nInbound Endpoint"]
+                end
+                subgraph SUB_PE["subnet-pe — 10.0.3.0/24"]
+                    PE["Private Endpoint\npe-storage-lab\n(Blob)"]
+                end
+            end
+
+            PEERING{{"VNet Peering\nhub <--> on-prem"}}
+
+            POLICY["DNS Security Policy\ndns-security-policy-lab\n- Domain List: malicious-domains-list\n- Rule: block-malicious-rule (Priority 100, Block)\n- VNet Link to Hub VNet"]
+            PDZ["Private DNS Zone\nprivatelink.blob.core.windows.net\n- Linked to Hub VNet\n- A record auto-registered"]
+            SA["Storage Account\nstpvtlink...\nPublic access: Disabled"]
+            LAW["Log Analytics Workspace\nlaw-dns-security-lab\n- DNS Query Logs\n- Diagnostic Data"]
+
+        end
+    end
+
+    %% Connections
+    CLIENT -- "DNS query" --> DNS_SRV
+    DNS_SRV -- "Conditional forwarder\nblob.core.windows.net" --> RESOLVER
+    RESOLVER -- "Azure DNS" --> PDZ
+    PDZ -- "Private IP" --> PE
+    PE -- "Private link" --> SA
+
+    ONPREM --- PEERING
+    HUB --- PEERING
+
+    POLICY -. "Linked to" .-> HUB
+    LAW -. "Diagnostic logs" .-> POLICY
+
+    %% Resolution flow annotation
+    subgraph FLOW["Private Endpoint Resolution Flow (from on-prem client)"]
+        direction LR
+        F1["Client"] --> F2["Windows DNS\n10.1.1.4"] --> F3["Conditional\nForwarder"] --> F4["Private Resolver\nInbound"] --> F5["Azure DNS"] --> F6["Private DNS\nZone"] --> F7["Private IP\n10.0.3.x"]
+    end
+
+    style AZ fill:#e6f2ff,stroke:#0078d4,stroke-width:2px
+    style RG fill:#f0f0f0,stroke:#666,stroke-width:2px
+    style ONPREM fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style HUB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style ONPREM_SUB fill:#fff8e1,stroke:#f57f17
+    style SUB_VM fill:#e8f5e9,stroke:#388e3c
+    style SUB_RESOLVER fill:#e8f5e9,stroke:#388e3c
+    style SUB_PE fill:#e8f5e9,stroke:#388e3c
+    style FLOW fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style PEERING fill:#e1bee7,stroke:#6a1b9a
+    style POLICY fill:#e3f2fd,stroke:#1565c0
+    style PDZ fill:#e3f2fd,stroke:#1565c0
+    style SA fill:#e3f2fd,stroke:#1565c0
+    style LAW fill:#e3f2fd,stroke:#1565c0
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Azure Subscription                      │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                Resource Group                       │    │
-│  │                                                     │    │
-│  │  ┌─────────────────┐    ┌─────────────────────────┐  │    │
-│  │  │  Virtual Network │    │   DNS Security Policy  │  │    │
-│  │  │  (10.0.0.0/16)  │◄───┤  - Domain List         │  │    │
-│  │  │                 │    │  - Security Rules       │  │    │
-│  │  │  ┌─────────────┐│    │  - VNet Link            │  │    │
-│  │  │  │   Subnet    ││    │  - Diagnostic Settings │  │    │
-│  │  │  │(10.0.1.0/24)││    └─────────────┬───────────┘  │    │
-│  │  │  │             ││                  │              │    │
-│  │  │  │  ┌────────┐ ││    ┌─────────────┼───────────┐  │    │
-│  │  │  │  │Ubuntu  │ ││    │     NSG     │           │  │    │
-│  │  │  │  │VM      │◄┼┼────┤  - Internal │Access     │  │    │
-│  │  │  │  └────────┘ ││    │  - No Public│IP         │  │    │
-│  │  │  └─────────────┘│    └─────────────┘           │  │    │
-│  │  └─────────────────┘                              │  │    │
-│  │                     ▲                             │  │    │
-│  │            Azure Portal Serial Console            │  │    │
-│  │                                                   │  │    │
-│  │  ┌─────────────────────────────────────────────────┘  │    │
-│  │  │           Log Analytics Workspace                 │    │
-│  │  │           - DNS Query Logs                        │    │
-│  │  │           - Diagnostic Data                       │    │
-│  │  └───────────────────────────────────────────────────┘    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-```
 
-## 📋 Prerequisites
+## Prerequisites
 
-**✅ NONE!** This lab is designed to run in GitHub Codespaces with no additional setup required.
+**NONE!** This lab is designed to run in GitHub Codespaces with no additional setup required.
 
 The Codespaces devcontainer includes:
 - Azure CLI (latest version)
 - jq JSON processor
 - All required VS Code extensions
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Open in Codespaces
 
@@ -86,18 +132,19 @@ Run the deployment script:
 
 The script will:
 - Prompt for Azure authentication via device code
-- Request a secure password for the VM
-- Deploy all Azure resources
-- Configure DNS security policies
-- Set up monitoring and diagnostics
+- Request a secure password for all VMs (Ubuntu, Windows DNS Server, on-prem client)
+- Deploy all Azure resources (DNS Security Policy, Private Resolver, on-prem VMs, storage + PE)
+- Configure DNS security policies and monitoring
+- Configure Windows DNS Server with conditional forwarder
+- Set up VNet peering and private endpoint
 
-### 4. Test DNS Blocking
+### 4. Test DNS Security Policy (Demo 1)
 
-After deployment, access your VM via the Azure Portal:
+After deployment, access the Ubuntu VM via the Azure Portal:
 
 1. Go to [Azure Portal](https://portal.azure.com)
 2. Navigate to Virtual Machines
-3. Select your VM in the resource group
+3. Select `vm-ubuntu-lab` in the resource group
 4. Click "Serial console" in the left menu
 5. Login with the credentials you provided
 
@@ -120,21 +167,54 @@ dig @8.8.8.8 google.com  # Test with external DNS for comparison
 - **Blocked domains**: Should return `blockpolicy.azuredns.invalid`
 - **Allowed domains**: Should return IP addresses normally
 
-### 5. Monitor DNS Activity
+### 5. Test Private Resolver & On-Prem DNS (Demo 2)
+
+Access the on-prem client VM via the Azure Portal:
+
+1. Navigate to Virtual Machines
+2. Select `vm-onprem-client` in the resource group
+3. Click "Serial console" → Login with the same credentials
+
+Test private endpoint resolution from the on-prem client:
+```bash
+# Find your storage account name from the deployment output, then:
+nslookup <storage-account-name>.blob.core.windows.net
+
+# Should return a PRIVATE IP (10.0.3.x), NOT a public IP
+# Resolution path: Client -> Windows DNS (10.1.1.4) -> Private Resolver -> Private DNS Zone
+```
+
+**(Optional) Verify Windows DNS Server configuration:**
+
+1. Navigate to Virtual Machines → `vm-dns-server`
+2. Click "Serial console"
+3. At the SAC prompt, type `cmd` then `ch -si 1`
+4. Login with the same credentials
+
+```powershell
+# Check conditional forwarders
+powershell -Command "Get-DnsServerZone | Where-Object ZoneType -eq 'Forwarder'"
+# Should show blob.core.windows.net forwarding to the resolver inbound IP
+
+# Check DNS server forwarders
+powershell -Command "Get-DnsServerForwarder"
+```
+
+### 6. Monitor DNS Activity
 
 View DNS logs in Log Analytics:
 1. Go to your resource group in Azure Portal
 2. Open the Log Analytics workspace (`law-dns-security-lab`)
 3. Click "Logs" and run KQL queries
 
-### 6. Clean Up
+### 7. Clean Up
 
 When finished:
 ```bash
 ./remove-lab.sh
 ```
 
-## 📊 DNS Query Monitoring
+## DNS Query Monitoring
 
 The lab includes a Log Analytics workspace that automatically collects DNS query logs from the DNS Security Policy. This provides visibility into:
 
@@ -216,7 +296,7 @@ DNSQueryLogs
 - `ResolverPolicyId`: ID of the security policy that processed the query
 - `VirtualNetworkId`: ID of the virtual network where query originated
 
-## � Advanced DNS Log Analysis
+## Advanced DNS Log Analysis
 
 ### Monitoring DNS Security Events
 
@@ -298,7 +378,7 @@ DNSQueryLogs
 - **REST API**: Programmatic access to DNS logs
 - **Export**: Regular data export to storage accounts
 
-## �🔧 Detailed Configuration
+## Detailed Configuration
 
 ### DNS Security Policy Details
 
@@ -315,10 +395,27 @@ The lab creates a DNS security policy with the following configuration:
 
 ### Network Configuration
 
-- **Virtual Network**: `vnet-dns-security-lab` (10.0.0.0/16)
-- **Subnet**: `subnet-internal` (10.0.1.0/24)
-- **VM**: Ubuntu 22.04 LTS, Standard_B1s
-- **Access**: Serial console only (no public IP)
+- **Hub Virtual Network**: `vnet-dns-lab` (10.0.0.0/16)
+  - **Subnet (VM)**: `subnet-vm` (10.0.1.0/24) — Ubuntu VM
+  - **Subnet (Resolver)**: `subnet-resolver-inbound` (10.0.2.0/28) — Private Resolver inbound endpoint
+  - **Subnet (PE)**: `subnet-pe` (10.0.3.0/24) — Private endpoint for storage
+- **On-Prem Virtual Network**: `vnet-onprem-lab` (10.1.0.0/16)
+  - **Subnet**: `subnet-onprem` (10.1.1.0/24) — Windows DNS Server + Ubuntu client
+- **VNet Peering**: hub ↔ on-prem (bidirectional, forwarded traffic allowed)
+- **VMs**:
+  - `vm-ubuntu-lab` — Ubuntu 22.04 LTS, Standard_B1s (DNS Security Policy test)
+  - `vm-dns-server` — Windows Server 2022, Standard_B2s, IP: 10.1.1.4 (DNS Server role)
+  - `vm-onprem-client` — Ubuntu 22.04 LTS, Standard_B1s (on-prem client)
+- **Access**: Serial console only (no public IPs)
+
+### Private Resolver Configuration
+
+- **DNS Private Resolver**: `dns-resolver-lab` in hub VNet
+- **Inbound Endpoint**: In `subnet-resolver-inbound` (10.0.2.0/28), dynamically assigned IP
+- **Windows DNS Server**: Conditional forwarder for `blob.core.windows.net` → Resolver inbound IP
+- **Private Endpoint**: `pe-storage-lab` targeting storage account blob sub-resource
+- **Private DNS Zone**: `privatelink.blob.core.windows.net` linked to hub VNet
+- **DNS Zone Group**: Auto-registers storage account A record in Private DNS Zone
 
 ### Monitoring Configuration
 
@@ -326,7 +423,7 @@ The lab creates a DNS security policy with the following configuration:
 - **Diagnostic Settings**: Configured to capture DNS query logs
 - **Data Retention**: Default Log Analytics retention policy
 
-## 📊 Lab Scenarios
+## Lab Scenarios
 
 ### Scenario 1: Basic DNS Blocking Test
 
@@ -359,21 +456,30 @@ dig google.com +short
 
 4. Verify results in Log Analytics (queries appear within 1-2 minutes)
 
-### Scenario 2: DNS Policy Modification
+### Scenario 2: Private Endpoint Resolution via On-Prem DNS
+
+1. Access `vm-onprem-client` via serial console
+2. Run `nslookup <storage-account>.blob.core.windows.net`
+3. Verify it returns a private IP (10.0.3.x) — not a public IP
+4. The resolution path is: Client → Windows DNS (10.1.1.4) → Conditional Forwarder → Private Resolver → Private DNS Zone → Private IP
+5. (Optional) Access `vm-dns-server` via serial console (SAC: `cmd` → `ch -si 1`)
+6. Verify conditional forwarder: `powershell -Command "Get-DnsServerZone | Where-Object ZoneType -eq 'Forwarder'"`
+
+### Scenario 3: DNS Policy Modification
 
 1. Add new domains to the block list
 2. Create additional security rules
 3. Test different response codes
 4. Modify rule priorities
 
-### Scenario 3: Monitoring and Analysis
+### Scenario 4: Monitoring and Analysis
 
 1. **Log Analytics Integration**: The lab automatically configures diagnostic settings to send DNS query logs to Log Analytics
 2. **Monitor DNS Queries**: View all DNS queries and blocked attempts in the Log Analytics workspace
 3. **Analyze Security Events**: Use KQL queries to analyze blocked vs. allowed queries
 4. **Set Up Alerts**: Configure Azure Monitor alerts for suspicious DNS activity patterns
 
-## 🛠️ Alternative Scripts
+## Alternative Scripts
 
 ### Environment Validation
 
@@ -388,7 +494,7 @@ This checks for:
 - Required tools (jq, etc.)
 - Subscription access permissions
 
-## 🗂️ File Structure
+## File Structure
 
 ```
 AzDnsSecurityPolicyLab/
@@ -396,15 +502,15 @@ AzDnsSecurityPolicyLab/
 ├── FILE_OVERVIEW.md             # Detailed file descriptions
 ├── answers.json                 # Configuration file (update with your subscription)
 ├── answers.json.template        # Template for configuration
-├── deploy-lab.sh               # Main deployment script
-├── remove-lab.sh               # Lab cleanup script
+├── deploy-lab.sh               # Main deployment script (DNS Policy + Private Resolver + On-Prem)
+├── remove-lab.sh               # Lab cleanup script (deletes entire resource group)
 ├── validate-environment.sh     # Pre-deployment validation
-├── test-dns-policy.sh          # DNS testing instructions
+├── test-dns-policy.sh          # Testing instructions for both demos
 └── .devcontainer/              # GitHub Codespaces configuration
     └── devcontainer.json       # Container setup and tools
 ```
 
-## 🔒 Security Features
+## Security Features
 
 ### No Public Network Access
 - VM has no public IP address
@@ -424,7 +530,7 @@ AzDnsSecurityPolicyLab/
 - KQL queries for security analysis
 - Integration with Azure Monitor for alerts
 
-## ❓ Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -453,6 +559,26 @@ AzDnsSecurityPolicyLab/
 - VM has no public IP by design
 - Login with username/password provided during deployment
 
+**"Windows serial console (SAC) access"**
+- At the SAC prompt, type `cmd` to create a command channel
+- Type `ch -si 1` to switch to that channel
+- Login with the same credentials as other VMs
+- To return to SAC, press `Esc` then `Tab`
+
+**"Private endpoint resolution returns public IP"**
+- Verify the Windows DNS Server conditional forwarder is configured:
+  Access `vm-dns-server` serial console and run `powershell -Command "Get-DnsServerZone"`
+- Verify VNet peering is connected: Check peering status in Azure Portal
+- Verify Private DNS Zone is linked to hub VNet
+- Verify DNS zone group was created on the private endpoint
+- Ensure the on-prem client DNS is set to 10.1.1.4:
+  Access `vm-onprem-client` serial console and run `resolvectl status`
+
+**"Private Resolver inbound endpoint provisioning failed"**
+- Ensure the subnet `subnet-resolver-inbound` has delegation to `Microsoft.Network/dnsResolvers`
+- Ensure the subnet prefix is /28 or larger
+- Azure DNS Private Resolver may not be available in all regions (eastus2 is supported)
+
 **"dig command not found"**
 - Install dig if needed: `sudo apt update && sudo apt install dnsutils`
 - Alternative: Use `host malicious.contoso.com` (usually pre-installed)
@@ -464,14 +590,16 @@ AzDnsSecurityPolicyLab/
 3. Ensure all prerequisites are met in your Azure subscription
 4. Use the validation script to check your environment
 
-## 📚 Learning Resources
+## Learning Resources
 
 - [Azure DNS Security Policies Documentation](https://docs.microsoft.com/en-us/azure/dns/dns-security-policy-overview)
+- [Azure DNS Private Resolver Documentation](https://docs.microsoft.com/en-us/azure/dns/dns-private-resolver-overview)
+- [Azure Private Endpoint DNS Configuration](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-dns)
 - [Azure DNS Resolver Documentation](https://docs.microsoft.com/en-us/azure/dns/dns-resolver-overview)
 - [Azure Monitor and Log Analytics](https://docs.microsoft.com/en-us/azure/azure-monitor/)
 - [KQL Query Language Reference](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/)
 
-## 🤝 Contributing
+## Contributing
 
 This lab is designed for educational purposes. Feel free to modify the scripts and configuration to suit your learning needs. Key areas for customization:
 
@@ -482,8 +610,10 @@ This lab is designed for educational purposes. Feel free to modify the scripts a
 
 ---
 
-**⚠️ Important Notes:**
-- This lab creates billable Azure resources
+**Important Notes:**
+- This lab creates billable Azure resources (Windows Server VM with B2s is the most expensive)
 - Remember to clean up resources when done (`./remove-lab.sh`)
-- VM access is via serial console only - no SSH/RDP
+- VM access is via serial console only - no SSH/RDP over the network
+- Windows serial console uses SAC (type `cmd`, then `ch -si 1`)
 - DNS changes may take 2-3 minutes to propagate
+- Azure DNS Private Resolver may not be available in all regions (eastus2 is supported)

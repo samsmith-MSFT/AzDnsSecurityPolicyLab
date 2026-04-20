@@ -1,6 +1,6 @@
-# Azure DNS Security Policy Lab - File Overview
+# Azure DNS Security Policy & Private Resolver Lab - File Overview
 
-This document provides a comprehensive overview of all files in the Azure DNS Security Policy Lab, including their purpose, functionality, and relationships.
+This document provides a comprehensive overview of all files in the Azure DNS Security Policy & Private Resolver Lab, including their purpose, functionality, and relationships.
 
 ## 📁 Complete File Structure
 
@@ -10,12 +10,12 @@ AzDnsSecurityPolicyLab/
 ├── FILE_OVERVIEW.md             # This file - detailed descriptions of all components
 ├── answers.json                 # User configuration file with Azure settings
 ├── answers.json.template        # Template for creating answers.json
-├── deploy-lab.sh               # Primary deployment script (Bash/Linux)
-├── Deploy-Lab.ps1              # Primary deployment script (PowerShell/Windows)
+├── deploy-lab.sh               # Primary deployment script (DNS Policy + Private Resolver + On-Prem)
+├── Deploy-Lab.ps1              # Primary deployment script (PowerShell/Windows) - placeholder
 ├── remove-lab.sh               # Lab cleanup script (Bash/Linux)
-├── Remove-Lab.ps1              # Lab cleanup script (PowerShell/Windows)
+├── Remove-Lab.ps1              # Lab cleanup script (PowerShell/Windows) - placeholder
 ├── validate-environment.sh     # Pre-deployment environment validation
-├── test-dns-policy.sh          # DNS testing instructions and commands
+├── test-dns-policy.sh          # Testing instructions for both DNS Policy and Private Resolver demos
 └── .devcontainer/              # GitHub Codespaces configuration
     └── devcontainer.json       # Container setup, tools, and extensions
 ```
@@ -30,9 +30,12 @@ AzDnsSecurityPolicyLab/
 
 **Pre-configured Settings**:
 - Resource group name and location (East US 2)
-- Virtual network configuration (10.0.0.0/16)
-- VM settings (Ubuntu 22.04 LTS, Standard_B1s)
+- Hub virtual network configuration (10.0.0.0/16)
+- On-prem virtual network configuration (10.1.0.0/16)
+- VM settings (Ubuntu 22.04 LTS, Windows Server 2022)
 - DNS security policy names and settings
+- Private Resolver configuration
+- Private endpoint and private DNS zone settings
 - Log Analytics workspace configuration
 
 **Dependencies**: Used by all deployment and cleanup scripts
@@ -67,25 +70,40 @@ AzDnsSecurityPolicyLab/
 
 **Key Features**:
 - Device code authentication (perfect for Codespaces)
-- Secure password prompting for VM
+- Secure password prompting for all VMs (shared password)
 - Comprehensive resource creation with error handling
 - Log Analytics workspace setup with diagnostic settings
 - DNS security policy configuration with specific domains
-- Serial console access setup (no public IP)
+- Private Resolver with inbound endpoint
+- Simulated on-prem environment with Windows DNS Server and Ubuntu client
+- Storage account with private endpoint and private DNS zone
+- VNet peering between hub and on-prem networks
+- Serial console access setup (no public IPs)
 
 **Deployment Sequence**:
 1. Validates configuration file
 2. Authenticates to Azure
 3. Creates resource group
 4. Creates Log Analytics workspace
-5. Sets up virtual network and subnet
+5. Sets up hub virtual network and VM subnet
 6. Creates Network Security Group (internal access only)
 7. Deploys Ubuntu VM (no public IP)
-8. Creates DNS security policy
-9. Creates domain list with malicious domains
-10. Creates security rule (priority 100, block action)
-11. Links policy to virtual network
-12. Configures diagnostic settings for monitoring
+8. Creates DNS security policy, domain list, security rule
+9. Links policy to hub virtual network
+10. Configures diagnostic settings for monitoring
+11. Creates resolver inbound subnet (delegated) and PE subnet
+12. Creates DNS Private Resolver with inbound endpoint
+13. Creates on-prem VNet with subnet
+14. Creates on-prem NSG and associates with subnet
+15. Creates bidirectional VNet peering (hub ↔ on-prem)
+16. Sets on-prem VNet custom DNS servers
+17. Deploys Windows DNS Server VM (static IP 10.1.1.4)
+18. Installs DNS Server role and configures conditional forwarder via run-command
+19. Deploys on-prem client VM and configures DNS to use Windows DNS Server
+20. Creates storage account with public access disabled
+21. Creates private endpoint for blob storage
+22. Creates private DNS zone and links to hub VNet
+23. Creates DNS zone group for automatic A record registration
 
 **Output**: Complete deployment summary with access instructions
 
@@ -151,6 +169,8 @@ AzDnsSecurityPolicyLab/
 
 The lab deployment creates the following Azure resources:
 
+**Core / DNS Security Policy Resources:**
+
 1. **Resource Group** (`rg-dns-security-lab`)
    - Container for all lab resources
    - Tagged for easy identification
@@ -158,50 +178,81 @@ The lab deployment creates the following Azure resources:
 2. **Log Analytics Workspace** (`law-dns-security-lab`)
    - Collects DNS query logs and diagnostic data
    - Enables monitoring and analysis of DNS security events
-   - Configured with diagnostic settings integration
 
-3. **Virtual Network** (`vnet-dns-security-lab`)
+3. **Hub Virtual Network** (`vnet-dns-lab`)
    - Address space: 10.0.0.0/16
-   - Single subnet: 10.0.1.0/24
-   - DNS servers: Azure-provided (automatic)
+   - Subnets:
+     - `subnet-vm` (10.0.1.0/24) — Ubuntu VM
+     - `subnet-resolver-inbound` (10.0.2.0/28) — Private Resolver inbound endpoint (delegated)
+     - `subnet-pe` (10.0.3.0/24) — Private endpoint
 
-4. **Network Security Group** (`nsg-dns-security-lab`)
+4. **Hub Network Security Group** (`nsg-vm-lab`)
    - Internal access rules only
-   - No public internet access allowed
-   - Optimized for serial console access
+   - Associated with subnet-vm
 
-5. **Ubuntu Virtual Machine** (`vm-dns-security-lab`)
-   - Size: Standard_B1s (cost-effective)
+5. **Ubuntu Virtual Machine** (`vm-ubuntu-lab`)
+   - Size: Standard_B1s
    - OS: Ubuntu 22.04 LTS
-   - No public IP address (serial console access only)
-   - Password authentication
-   - Attached to internal subnet
+   - No public IP (serial console access only)
+   - Used for DNS Security Policy testing
 
 6. **DNS Security Policy** (`dns-security-policy-lab`)
-   - Main policy container
-   - Linked to virtual network
-   - Configured with diagnostic settings
+   - Domain List (`malicious-domains-list`): `malicious.contoso.com.`, `exploit.adatum.com.`
+   - Security Rule (`block-malicious-rule`): Priority 100, Block action
+   - VNet Link (`vnet-link-lab`): Links policy to hub VNet
+   - Diagnostic Settings: DNS query logs → Log Analytics
 
-7. **DNS Domain List** (`domain-list-malicious`)
-   - Contains blocked domains:
-     - `malicious.contoso.com.`
-     - `exploit.adatum.com.`
-   - Note: Trailing dots are required for proper DNS matching
+**Private Resolver Resources:**
 
-8. **DNS Security Rule** (`security-rule-block-malicious`)
-   - Priority: 100 (high priority)
-   - Action: Block
-   - Response: ServFail
-   - State: Enabled
+7. **DNS Private Resolver** (`dns-resolver-lab`)
+   - Located in hub VNet
+   - Inbound Endpoint (`inbound-endpoint`): Dynamically assigned IP in 10.0.2.0/28 subnet
+   - Receives forwarded queries from on-prem Windows DNS Server
 
-9. **Virtual Network Link** (`vnet-link-dns-security`)
-   - Links DNS security policy to virtual network
-   - Enables automatic DNS filtering
+8. **Storage Account** (`stpvtlink<timestamp>`)
+   - Public network access disabled
+   - Used for private endpoint demo
 
-10. **Diagnostic Settings** (`dns-policy-diagnostics`)
-    - Captures DNS query logs
-    - Sends data to Log Analytics workspace
-    - Enables monitoring and alerting
+9. **Private Endpoint** (`pe-storage-lab`)
+   - Located in subnet-pe (10.0.3.0/24)
+   - Targets storage account blob sub-resource
+   - DNS zone group auto-registers A record
+
+10. **Private DNS Zone** (`privatelink.blob.core.windows.net`)
+    - Linked to hub VNet (`pdz-link-hub`)
+    - Contains A record for storage account → private IP
+
+**On-Prem (Simulated) Resources:**
+
+11. **On-Prem Virtual Network** (`vnet-onprem-lab`)
+    - Address space: 10.1.0.0/16
+    - Subnet: `subnet-onprem` (10.1.1.0/24)
+    - Custom DNS servers: 10.1.1.4
+
+12. **On-Prem Network Security Group** (`nsg-onprem-lab`)
+    - Internal access rules
+    - Associated with subnet-onprem
+
+13. **VNet Peering** (bidirectional)
+    - `hub-to-onprem`: hub VNet → on-prem VNet
+    - `onprem-to-hub`: on-prem VNet → hub VNet
+    - Forwarded traffic allowed
+
+14. **Windows DNS Server VM** (`vm-dns-server`)
+    - Size: Standard_B2s
+    - OS: Windows Server 2022 Datacenter
+    - Static IP: 10.1.1.4
+    - DNS Server role installed with conditional forwarder for `blob.core.windows.net` → Resolver inbound IP
+    - Access via SAC serial console
+
+15. **On-Prem Client VM** (`vm-onprem-client`)
+    - Size: Standard_B1s
+    - OS: Ubuntu 22.04 LTS
+    - DNS configured to use 10.1.1.4 (Windows DNS Server)
+    - Used for testing private endpoint resolution
+
+16. **Boot Diagnostics Storage Account** (`sa<rg><timestamp>`)
+    - For VM boot diagnostics
 
 ## 🔧 DevContainer Configuration
 
@@ -280,9 +331,11 @@ RuleName         # Triggered security rule
 ### Network Security Model
 
 **Zero Public Access**: 
-- No public IP addresses assigned
+- No public IP addresses on any VM
 - All access via Azure Portal serial console
+- Windows VMs use SAC console (type `cmd`, `ch -si 1`)
 - Internal network communication only
+- VNet peering for cross-network connectivity
 
 **DNS Security**:
 - Policy-based domain blocking
@@ -336,17 +389,21 @@ RuleName         # Triggered security rule
 
 ### Learning Scenarios
 
-1. **Basic DNS Security**: Understand how DNS policies work
-2. **Monitoring and Analysis**: Learn Azure monitoring capabilities  
-3. **Policy Management**: Practice security rule configuration
-4. **Incident Response**: Analyze DNS security events
+1. **Basic DNS Security**: Understand how DNS policies block malicious domains
+2. **Private Resolver**: Learn how on-prem DNS forwards to Azure Private Resolver
+3. **Private Endpoints**: Understand private endpoint DNS resolution chain
+4. **Monitoring and Analysis**: Learn Azure monitoring capabilities  
+5. **Policy Management**: Practice security rule configuration
+6. **Incident Response**: Analyze DNS security events
 
 ### Testing Scenarios
 
-1. **Malicious Domain Testing**: Verify blocking effectiveness
-2. **Policy Bypass Testing**: Test rule priorities and exceptions
-3. **Performance Testing**: Analyze DNS response times
-4. **Monitoring Validation**: Verify log collection and analysis
+1. **Malicious Domain Testing**: Verify blocking effectiveness from hub VM
+2. **Private Endpoint Resolution**: Verify on-prem client resolves storage to private IP
+3. **DNS Forwarding Chain**: Trace resolution through Windows DNS → Private Resolver → Private DNS Zone
+4. **Policy Bypass Testing**: Test rule priorities and exceptions
+5. **Performance Testing**: Analyze DNS response times
+6. **Monitoring Validation**: Verify log collection and analysis
 
 ### Production Preparation
 

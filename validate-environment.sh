@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Azure DNS Security Policy Lab - Environment Validation Script
+# Azure DNS Security Policy & Private Resolver Lab - Environment Validation Script
 # This script validates the environment before deployment in GitHub Codespaces
 
-echo "=========================================="
-echo "Azure DNS Security Policy Lab Validation"
-echo "=========================================="
+echo "================================================================"
+echo "Azure DNS Security Policy & Private Resolver Lab - Validation"
+echo "================================================================"
 
 EXIT_CODE=0
 
@@ -110,6 +110,60 @@ if [[ -f "answers.json" ]]; then
         echo "❌ location is required in answers.json"
         EXIT_CODE=1
     fi
+
+    # Validate Private Resolver & On-Prem configuration
+    echo ""
+    echo "Validating Private Resolver & On-Prem Configuration:"
+    echo "---------------------------------------------------"
+
+    ONPREM_VNET_NAME=$(jq -r '.onpremVnetName' answers.json 2>/dev/null)
+    RESOLVER_NAME=$(jq -r '.resolverName' answers.json 2>/dev/null)
+    DNS_SERVER_VM_NAME=$(jq -r '.dnsServerVmName' answers.json 2>/dev/null)
+    ONPREM_CLIENT_VM_NAME=$(jq -r '.onpremClientVmName' answers.json 2>/dev/null)
+    PE_NAME=$(jq -r '.privateEndpointName' answers.json 2>/dev/null)
+    PRIVATE_DNS_ZONE_NAME=$(jq -r '.privateDnsZoneName' answers.json 2>/dev/null)
+
+    if [[ -n "$ONPREM_VNET_NAME" && "$ONPREM_VNET_NAME" != "null" ]]; then
+        echo "✅ onpremVnetName is configured: $ONPREM_VNET_NAME"
+    else
+        echo "❌ onpremVnetName is required in answers.json"
+        EXIT_CODE=1
+    fi
+
+    if [[ -n "$RESOLVER_NAME" && "$RESOLVER_NAME" != "null" ]]; then
+        echo "✅ resolverName is configured: $RESOLVER_NAME"
+    else
+        echo "❌ resolverName is required in answers.json"
+        EXIT_CODE=1
+    fi
+
+    if [[ -n "$DNS_SERVER_VM_NAME" && "$DNS_SERVER_VM_NAME" != "null" ]]; then
+        echo "✅ dnsServerVmName is configured: $DNS_SERVER_VM_NAME"
+    else
+        echo "❌ dnsServerVmName is required in answers.json"
+        EXIT_CODE=1
+    fi
+
+    if [[ -n "$ONPREM_CLIENT_VM_NAME" && "$ONPREM_CLIENT_VM_NAME" != "null" ]]; then
+        echo "✅ onpremClientVmName is configured: $ONPREM_CLIENT_VM_NAME"
+    else
+        echo "❌ onpremClientVmName is required in answers.json"
+        EXIT_CODE=1
+    fi
+
+    if [[ -n "$PE_NAME" && "$PE_NAME" != "null" ]]; then
+        echo "✅ privateEndpointName is configured: $PE_NAME"
+    else
+        echo "❌ privateEndpointName is required in answers.json"
+        EXIT_CODE=1
+    fi
+
+    if [[ -n "$PRIVATE_DNS_ZONE_NAME" && "$PRIVATE_DNS_ZONE_NAME" != "null" ]]; then
+        echo "✅ privateDnsZoneName is configured: $PRIVATE_DNS_ZONE_NAME"
+    else
+        echo "❌ privateDnsZoneName is required in answers.json"
+        EXIT_CODE=1
+    fi
 fi
 
 # Check script permissions
@@ -153,9 +207,15 @@ if [[ $EXIT_CODE -eq 0 ]]; then
     echo ""
     echo "Next steps:"
     echo "1. Run './deploy-lab.sh' to start the lab deployment"
-    echo "2. After deployment, access the VM via Azure Portal Serial Console"
-    echo "3. Test DNS blocking with: nslookup malicious.contoso.com"
-    echo "4. Clean up with './remove-lab.sh' when done"
+    echo "2. After deployment, access VMs via Azure Portal Serial Console"
+    echo ""
+    echo "Demo 1 - DNS Security Policy:"
+    echo "  From vm-ubuntu-lab: nslookup malicious.contoso.com (should be blocked)"
+    echo ""
+    echo "Demo 2 - Private Resolver:"
+    echo "  From vm-onprem-client: nslookup <storage>.blob.core.windows.net (should return private IP)"
+    echo ""
+    echo "3. Clean up with './remove-lab.sh' when done"
 else
     echo "❌ VALIDATION FAILED"
     echo "=========================================="
