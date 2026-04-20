@@ -26,30 +26,9 @@ This lab creates a complete Azure environment with two demos:
 
 ## Architecture
 
-The architecture diagram is maintained as a draw.io file for easy editing and visualization.
+![Architecture Diagram](architecture.svg)
 
-**[Open architecture.drawio](architecture.drawio)** (requires the [Draw.io Integration](https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio) VS Code extension)
-
-### Architecture Summary
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Resource Group: rg-dns-security-lab                                         │
-│                                                                             │
-│  On-Prem VNet (10.1.0.0/16)         Hub VNet (10.0.0.0/16)                 │
-│  ┌─────────────────────────┐         ┌────────────────────────────────┐    │
-│  │ vm-dns-server (Win/B2s) │  VNet   │ vm-ubuntu-lab (Ubuntu/B1s)     │    │
-│  │ IP: 10.1.1.4            │◄─Peer─►│ DNS Private Resolver (Inbound) │    │
-│  │ vm-onprem-client (B1s)  │  ing    │ Private Endpoint (Storage)     │    │
-│  └─────────────────────────┘         └────────────────────────────────┘    │
-│                                                                             │
-│  DNS Security Policy    Private DNS Zone           Log Analytics Workspace  │
-│  (linked to Hub VNet)   (privatelink.blob...)      (DNS Query Logs)         │
-│                                                                             │
-│  Resolution Flow:                                                           │
-│  Client → Win DNS → Cond. Forwarder → Resolver → Azure DNS → PE (10.0.3.x)│
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+> The source diagram is also available as [architecture.drawio](architecture.drawio) for editing with the [Draw.io VS Code extension](https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio).
 
 ## Prerequisites
 

@@ -1,0 +1,240 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2E7D32"/>
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1565C0"/>
+    </marker>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="780" fill="#fafafa" rx="8"/>
+
+  <!-- Azure Subscription -->
+  <rect x="15" y="15" width="1170" height="750" rx="10" fill="#e6f2ff" stroke="#0078D4" stroke-width="2.5" filter="url(#shadow)"/>
+  <text x="600" y="40" text-anchor="middle" font-size="16" font-weight="bold" fill="#0078D4">Azure Subscription</text>
+
+  <!-- Resource Group -->
+  <rect x="30" y="55" width="1140" height="700" rx="8" fill="#f5f5f5" stroke="#666" stroke-width="1.5"/>
+  <text x="600" y="75" text-anchor="middle" font-size="13" font-weight="bold" fill="#444">Resource Group: rg-dns-security-lab</text>
+
+  <!-- ==================== On-Prem VNet ==================== -->
+  <rect x="45" y="90" width="380" height="340" rx="8" fill="#fff3e0" stroke="#E65100" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="235" y="112" text-anchor="middle" font-size="12" font-weight="bold" fill="#E65100">On-Prem VNet: vnet-onprem-lab</text>
+  <text x="235" y="127" text-anchor="middle" font-size="10" fill="#BF360C">10.1.0.0/16</text>
+
+  <!-- subnet-onprem -->
+  <rect x="60" y="135" width="350" height="280" rx="6" fill="#fff8e1" stroke="#F57F17" stroke-width="1"/>
+  <text x="235" y="153" text-anchor="middle" font-size="10" fill="#F57F17">subnet-onprem — 10.1.1.0/24</text>
+
+  <!-- Windows DNS Server -->
+  <rect x="75" y="165" width="320" height="115" rx="6" fill="#ffffff" stroke="#0078D4" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="85" y="175" width="36" height="36" rx="4" fill="#0078D4"/>
+  <text x="103" y="199" text-anchor="middle" font-size="16" fill="white">W</text>
+  <text x="130" y="188" font-size="11" font-weight="bold" fill="#333">vm-dns-server</text>
+  <text x="130" y="203" font-size="9" fill="#666">Windows Server 2022 | B2s | Static IP: 10.1.1.4</text>
+  <text x="130" y="218" font-size="9" fill="#666">Roles: DNS Server</text>
+  <text x="85" y="245" font-size="9" fill="#1565C0">Conditional Forwarder:</text>
+  <text x="85" y="258" font-size="9" font-weight="bold" fill="#1565C0">*.blob.core.windows.net → Private Resolver Inbound IP</text>
+  <text x="85" y="271" font-size="8" fill="#999">NSG: nsg-onprem-lab</text>
+
+  <!-- Ubuntu Client -->
+  <rect x="75" y="290" width="320" height="110" rx="6" fill="#ffffff" stroke="#E65100" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="85" y="300" width="36" height="36" rx="4" fill="#E65100"/>
+  <text x="103" y="324" text-anchor="middle" font-size="16" fill="white">L</text>
+  <text x="130" y="313" font-size="11" font-weight="bold" fill="#333">vm-onprem-client</text>
+  <text x="130" y="328" font-size="9" fill="#666">Ubuntu 22.04 | B1s</text>
+  <text x="130" y="343" font-size="9" fill="#666">DNS configured: 10.1.1.4 (Windows DNS Server)</text>
+  <text x="85" y="370" font-size="9" fill="#1565C0">Purpose: Test private endpoint resolution from on-prem</text>
+  <text x="85" y="383" font-size="9" fill="#1565C0">via Windows DNS → Resolver chain</text>
+
+  <!-- Arrow: Client to DNS Server -->
+  <line x1="235" y1="290" x2="235" y2="280" stroke="#E65100" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="250" y="288" font-size="8" fill="#E65100" font-style="italic">DNS query</text>
+
+  <!-- ==================== Hub VNet ==================== -->
+  <rect x="470" y="90" width="440" height="340" rx="8" fill="#e8f5e9" stroke="#2E7D32" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="690" y="112" text-anchor="middle" font-size="12" font-weight="bold" fill="#2E7D32">Hub VNet: vnet-dns-lab</text>
+  <text x="690" y="127" text-anchor="middle" font-size="10" fill="#1B5E20">10.0.0.0/16</text>
+
+  <!-- subnet-vm -->
+  <rect x="485" y="135" width="410" height="80" rx="5" fill="#c8e6c9" stroke="#388E3C" stroke-width="1"/>
+  <text x="690" y="151" text-anchor="middle" font-size="9" fill="#388E3C">subnet-vm — 10.0.1.0/24</text>
+  <rect x="500" y="158" width="380" height="48" rx="4" fill="#ffffff" stroke="#388E3C" stroke-width="1"/>
+  <rect x="510" y="168" width="30" height="30" rx="4" fill="#388E3C"/>
+  <text x="525" y="188" text-anchor="middle" font-size="14" fill="white">L</text>
+  <text x="548" y="181" font-size="10" font-weight="bold" fill="#333">vm-ubuntu-lab</text>
+  <text x="548" y="195" font-size="9" fill="#666">Ubuntu 22.04 | B1s | DNS Security Policy test VM</text>
+
+  <!-- subnet-resolver-inbound -->
+  <rect x="485" y="225" width="410" height="80" rx="5" fill="#c8e6c9" stroke="#388E3C" stroke-width="1"/>
+  <text x="690" y="241" text-anchor="middle" font-size="9" fill="#388E3C">subnet-resolver-inbound — 10.0.2.0/28 (delegated: Microsoft.Network/dnsResolvers)</text>
+  <rect x="500" y="248" width="380" height="48" rx="4" fill="#ffffff" stroke="#1565C0" stroke-width="1.5"/>
+  <rect x="510" y="258" width="30" height="30" rx="4" fill="#1565C0"/>
+  <text x="525" y="278" text-anchor="middle" font-size="14" fill="white">R</text>
+  <text x="548" y="271" font-size="10" font-weight="bold" fill="#333">DNS Private Resolver — Inbound Endpoint</text>
+  <text x="548" y="285" font-size="9" fill="#666">Dynamic IP assigned at deployment</text>
+
+  <!-- subnet-pe -->
+  <rect x="485" y="315" width="410" height="80" rx="5" fill="#c8e6c9" stroke="#388E3C" stroke-width="1"/>
+  <text x="690" y="331" text-anchor="middle" font-size="9" fill="#388E3C">subnet-pe — 10.0.3.0/24</text>
+  <rect x="500" y="338" width="380" height="48" rx="4" fill="#ffffff" stroke="#6A1B9A" stroke-width="1"/>
+  <rect x="510" y="348" width="30" height="30" rx="4" fill="#6A1B9A"/>
+  <text x="525" y="368" text-anchor="middle" font-size="14" fill="white">PE</text>
+  <text x="548" y="361" font-size="10" font-weight="bold" fill="#333">pe-storage-lab</text>
+  <text x="548" y="375" font-size="9" fill="#666">Private Endpoint (Microsoft.Storage/storageAccounts — blob)</text>
+
+  <!-- NSG label for hub -->
+  <text x="495" y="420" font-size="8" fill="#999">NSG: nsg-lab</text>
+
+  <!-- ==================== VNet Peering Arrow ==================== -->
+  <line x1="425" y1="260" x2="470" y2="272" stroke="#6A1B9A" stroke-width="2.5" stroke-dasharray="8,4" marker-end="url(#arrowhead)"/>
+  <line x1="470" y1="260" x2="425" y2="248" stroke="#6A1B9A" stroke-width="2.5" stroke-dasharray="8,4" marker-end="url(#arrowhead)"/>
+  <rect x="430" y="238" width="55" height="30" rx="4" fill="#e1bee7" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="457" y="252" text-anchor="middle" font-size="8" font-weight="bold" fill="#6A1B9A">VNet</text>
+  <text x="457" y="263" text-anchor="middle" font-size="8" font-weight="bold" fill="#6A1B9A">Peering</text>
+
+  <!-- ==================== Storage Account ==================== -->
+  <rect x="950" y="315" width="200" height="80" rx="6" fill="#ffffff" stroke="#1565C0" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="960" y="330" width="30" height="30" rx="4" fill="#1565C0"/>
+  <text x="975" y="350" text-anchor="middle" font-size="14" fill="white">S</text>
+  <text x="998" y="340" font-size="10" font-weight="bold" fill="#333">Storage Account</text>
+  <text x="998" y="355" font-size="9" fill="#666">stpvtlink... (unique name)</text>
+  <text x="998" y="370" font-size="9" fill="#666">Public network access: Disabled</text>
+  <text x="998" y="385" font-size="9" fill="#C62828">Accessible only via Private Endpoint</text>
+
+  <!-- Arrow: PE to Storage -->
+  <line x1="880" y1="362" x2="948" y2="355" stroke="#6A1B9A" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>
+  <text x="900" y="348" font-size="8" fill="#6A1B9A" font-style="italic">Private Link</text>
+
+  <!-- ==================== Bottom Services Row ==================== -->
+
+  <!-- DNS Security Policy -->
+  <rect x="45" y="455" width="310" height="110" rx="6" fill="#e3f2fd" stroke="#1565C0" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="55" y="465" width="30" height="30" rx="4" fill="#1565C0"/>
+  <text x="70" y="485" text-anchor="middle" font-size="14" fill="white">P</text>
+  <text x="93" y="478" font-size="10" font-weight="bold" fill="#1565C0">DNS Security Policy</text>
+  <text x="55" y="505" font-size="9" fill="#333">dns-security-policy-lab</text>
+  <text x="55" y="520" font-size="9" fill="#666">• Domain List: malicious-domains-list</text>
+  <text x="55" y="535" font-size="9" fill="#666">• Rule: block-malicious-rule (Priority 100, Block)</text>
+  <text x="55" y="550" font-size="9" fill="#666">• VNet Link: Hub VNet (vnet-dns-lab)</text>
+
+  <!-- Arrow: Policy linked to Hub VNet -->
+  <line x1="200" y1="455" x2="600" y2="430" stroke="#1565C0" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrowhead-blue)"/>
+  <text x="380" y="437" font-size="8" fill="#1565C0" font-style="italic">Linked to Hub VNet</text>
+
+  <!-- Private DNS Zone -->
+  <rect x="380" y="455" width="330" height="110" rx="6" fill="#e3f2fd" stroke="#1565C0" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="390" y="465" width="30" height="30" rx="4" fill="#0D47A1"/>
+  <text x="405" y="485" text-anchor="middle" font-size="14" fill="white">Z</text>
+  <text x="428" y="478" font-size="10" font-weight="bold" fill="#1565C0">Private DNS Zone</text>
+  <text x="390" y="505" font-size="9" fill="#333">privatelink.blob.core.windows.net</text>
+  <text x="390" y="520" font-size="9" fill="#666">• Virtual Network Link: Hub VNet (auto-registration)</text>
+  <text x="390" y="535" font-size="9" fill="#666">• A record: stpvtlink... → PE private IP</text>
+  <text x="390" y="550" font-size="9" fill="#666">• Zone Group: pe-storage-lab/default</text>
+
+  <!-- Arrow: Private DNS Zone linked to Hub VNet -->
+  <line x1="545" y1="455" x2="650" y2="430" stroke="#1565C0" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrowhead-blue)"/>
+
+  <!-- Log Analytics Workspace -->
+  <rect x="735" y="455" width="280" height="110" rx="6" fill="#e3f2fd" stroke="#1565C0" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="745" y="465" width="30" height="30" rx="4" fill="#0D47A1"/>
+  <text x="760" y="485" text-anchor="middle" font-size="14" fill="white">L</text>
+  <text x="783" y="478" font-size="10" font-weight="bold" fill="#1565C0">Log Analytics Workspace</text>
+  <text x="745" y="505" font-size="9" fill="#333">law-dns-security-lab</text>
+  <text x="745" y="520" font-size="9" fill="#666">• DNS Query Logs (DnsQueryLogs)</text>
+  <text x="745" y="535" font-size="9" fill="#666">• Diagnostic Settings on DNS Security Policy</text>
+  <text x="745" y="550" font-size="9" fill="#666">• KQL queries for analysis</text>
+
+  <!-- Arrow: Diagnostic logs from Policy to LAW -->
+  <line x1="355" y1="510" x2="380" y2="510" stroke="#666" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="710" y1="510" x2="735" y2="510" stroke="#666" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrowhead)"/>
+  <text x="600" y="442" font-size="8" fill="#666" font-style="italic" text-anchor="middle">Diagnostic logs →</text>
+
+  <!-- ==================== DNS Resolution Flow ==================== -->
+  <rect x="45" y="590" width="1120" height="80" rx="8" fill="#fce4ec" stroke="#C62828" stroke-width="2"/>
+  <text x="605" y="612" text-anchor="middle" font-size="11" font-weight="bold" fill="#C62828">Private Endpoint Resolution Flow (from on-prem client)</text>
+
+  <!-- Flow boxes -->
+  <rect x="60" y="625" width="95" height="35" rx="4" fill="#fff3e0" stroke="#E65100" stroke-width="1"/>
+  <text x="107" y="647" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Client</text>
+
+  <text x="163" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="175" y="625" width="130" height="35" rx="4" fill="#fff3e0" stroke="#E65100" stroke-width="1"/>
+  <text x="240" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Windows DNS</text>
+  <text x="240" y="653" text-anchor="middle" font-size="8" fill="#666">10.1.1.4</text>
+
+  <text x="313" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="325" y="625" width="130" height="35" rx="4" fill="#e1bee7" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="390" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Cond. Forwarder</text>
+  <text x="390" y="653" text-anchor="middle" font-size="8" fill="#666">(via VNet Peering)</text>
+
+  <text x="463" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="475" y="625" width="135" height="35" rx="4" fill="#e8f5e9" stroke="#2E7D32" stroke-width="1"/>
+  <text x="542" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Private Resolver</text>
+  <text x="542" y="653" text-anchor="middle" font-size="8" fill="#666">Inbound Endpoint</text>
+
+  <text x="618" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="630" y="625" width="100" height="35" rx="4" fill="#e3f2fd" stroke="#1565C0" stroke-width="1"/>
+  <text x="680" y="647" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Azure DNS</text>
+
+  <text x="738" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="750" y="625" width="130" height="35" rx="4" fill="#e3f2fd" stroke="#1565C0" stroke-width="1"/>
+  <text x="815" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Private DNS Zone</text>
+  <text x="815" y="653" text-anchor="middle" font-size="8" fill="#666">privatelink.blob...</text>
+
+  <text x="888" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="900" y="625" width="130" height="35" rx="4" fill="#ffffff" stroke="#C62828" stroke-width="1.5"/>
+  <text x="965" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#C62828">Private IP</text>
+  <text x="965" y="653" text-anchor="middle" font-size="8" fill="#666">10.0.3.x (Storage)</text>
+
+  <!-- ==================== Conditional Forwarder Flow Arrow ==================== -->
+  <path d="M 395 220 C 435 220, 440 272, 485 272" fill="none" stroke="#2E7D32" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+  <text x="430" y="210" font-size="8" font-weight="bold" fill="#2E7D32">Conditional</text>
+  <text x="430" y="220" font-size="8" font-weight="bold" fill="#2E7D32">Forwarder</text>
+
+  <!-- ==================== Legend ==================== -->
+  <rect x="950" y="90" width="210" height="200" rx="6" fill="#ffffff" stroke="#333" stroke-width="1"/>
+  <text x="1055" y="110" text-anchor="middle" font-size="10" font-weight="bold" fill="#333">Legend</text>
+
+  <line x1="965" y1="122" x2="995" y2="122" stroke="#E65100" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="1003" y="126" font-size="9" fill="#333">On-Prem VNet</text>
+
+  <line x1="965" y1="142" x2="995" y2="142" stroke="#2E7D32" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="1003" y="146" font-size="9" fill="#333">Hub VNet</text>
+
+  <line x1="965" y1="162" x2="995" y2="162" stroke="#6A1B9A" stroke-width="2.5" stroke-dasharray="8,4"/>
+  <text x="1003" y="166" font-size="9" fill="#333">VNet Peering</text>
+
+  <line x1="965" y1="182" x2="995" y2="182" stroke="#2E7D32" stroke-width="2"/>
+  <text x="1003" y="186" font-size="9" fill="#333">DNS resolution path</text>
+
+  <line x1="965" y1="202" x2="995" y2="202" stroke="#1565C0" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="1003" y="206" font-size="9" fill="#333">Resource linkage</text>
+
+  <line x1="965" y1="222" x2="995" y2="222" stroke="#6A1B9A" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="1003" y="226" font-size="9" fill="#333">Private Link</text>
+
+  <rect x="965" y="238" width="20" height="12" rx="2" fill="#e3f2fd" stroke="#1565C0" stroke-width="1"/>
+  <text x="993" y="248" font-size="9" fill="#333">Azure service</text>
+
+  <rect x="965" y="258" width="20" height="12" rx="2" fill="#fce4ec" stroke="#C62828" stroke-width="1"/>
+  <text x="993" y="268" font-size="9" fill="#333">Resolution flow</text>
+
+  <!-- Title -->
+  <text x="600" y="700" text-anchor="middle" font-size="10" fill="#999">Azure DNS Security Policy and Private Resolver Lab — Architecture Diagram</text>
+  <text x="600" y="715" text-anchor="middle" font-size="9" fill="#bbb">Demo 1: DNS Security Policy (Hub VNet) | Demo 2: Private Resolver + Private Endpoint (On-Prem → Hub)</text>
+</svg>
