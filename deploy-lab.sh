@@ -604,9 +604,9 @@ az vm boot-diagnostics enable \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --name "$DNS_SERVER_VM_NAME"
 
-# Configure Windows DNS Server role and conditional forwarder via run-command
+# Configure Windows DNS Server role via run-command (Step 1: Install role and start service)
 echo ""
-echo "Configuring Windows DNS Server role and conditional forwarder..."
+echo "Installing Windows DNS Server role..."
 az vm run-command invoke \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --name "$DNS_SERVER_VM_NAME" \
@@ -615,18 +615,48 @@ az vm run-command invoke \
         # Install DNS Server role
         Install-WindowsFeature DNS -IncludeManagementTools
 
+        # Ensure DNS Server service is running
+        Start-Service DNS
+        Start-Sleep -Seconds 10
+
+        # Verify DNS role is installed and service is running
+        Get-WindowsFeature DNS
+        Get-Service DNS
+    "
+
+echo "DNS Server role installed."
+
+# Configure DNS zones and records via run-command (Step 2: requires DNS service running)
+echo ""
+echo "Configuring DNS zones and records..."
+az vm run-command invoke \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --name "$DNS_SERVER_VM_NAME" \
+    --command-id RunPowerShellScript \
+    --scripts "
+        # Wait for DNS service to be fully ready
+        \$retries = 0
+        while (\$retries -lt 12) {
+            try {
+                Get-DnsServerZone -ErrorAction Stop | Out-Null
+                break
+            } catch {
+                \$retries++
+                Start-Sleep -Seconds 5
+            }
+        }
+        if (\$retries -eq 12) { throw 'DNS Server service did not become ready in time' }
+
         # Add conditional forwarder for blob.core.windows.net -> Private Resolver inbound IP
         Add-DnsServerConditionalForwarderZone -Name 'blob.core.windows.net' -MasterServers $RESOLVER_INBOUND_IP -PassThru
 
         # Create forward lookup zone for on-prem domain
         Add-DnsServerPrimaryZone -Name '$ONPREM_DNS_DOMAIN' -ReplicationScope None -ZoneFile '${ONPREM_DNS_DOMAIN}.dns' -PassThru
 
-        # Add A record for the DNS server itself
+        # Add A record
         Add-DnsServerResourceRecordA -ZoneName '$ONPREM_DNS_DOMAIN' -Name '$ONPREM_DNS_RECORD_NAME' -IPv4Address '$DNS_SERVER_STATIC_IP' -PassThru
 
-        # Verify installation
-        Get-WindowsFeature DNS
-        Get-DnsServerForwarder
+        # Verify configuration
         Get-DnsServerZone
         Get-DnsServerResourceRecord -ZoneName '$ONPREM_DNS_DOMAIN'
     "
