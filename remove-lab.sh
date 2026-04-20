@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Azure DNS Security Policy Lab Removal Script
-# This script removes the entire DNS security policy lab environment
+# Azure DNS Private Resolver Lab Removal Script
+# This script removes the entire DNS private resolver lab environment
 
 set -e  # Exit on any error
 
 echo "=========================================="
-echo "Azure DNS Security Policy Lab Removal"
+echo "Azure DNS Private Resolver Lab Removal"
 echo "=========================================="
 
 # Check if answers.json exists

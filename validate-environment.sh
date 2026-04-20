@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Azure DNS Security Policy & Private Resolver Lab - Environment Validation Script
+# Azure DNS Private Resolver Lab - Environment Validation Script
 # This script validates the environment before deployment in GitHub Codespaces
 
 echo "================================================================"
-echo "Azure DNS Security Policy & Private Resolver Lab - Validation"
+echo "Azure DNS Private Resolver Lab - Validation"
 echo "================================================================"
 
 EXIT_CODE=0
@@ -248,14 +248,14 @@ if [[ $EXIT_CODE -eq 0 ]]; then
     echo "1. Run './deploy-lab.sh' to start the lab deployment"
     echo "2. After deployment, access VMs via Azure Portal Serial Console"
     echo ""
-    echo "Demo 1 - DNS Security Policy:"
-    echo "  From vm-ubuntu-lab: nslookup malicious.contoso.com (should be blocked)"
-    echo ""
-    echo "Demo 2 - Private Resolver:"
+    echo "Demo 1 - Private Resolver Inbound:"
     echo "  From vm-onprem-client: nslookup <storage>.blob.core.windows.net (should return private IP)"
     echo ""
-    echo "Demo 3 - Outbound Endpoint:"
+    echo "Demo 2 - Private Resolver Outbound:"
     echo "  From vm-ubuntu-lab: dig ${ONPREM_DNS_RECORD_NAME}.${ONPREM_DNS_DOMAIN} (should return 10.1.1.4)"
+    echo ""
+    echo "Demo 3 - DNS Security Policy:"
+    echo "  From vm-ubuntu-lab: nslookup malicious.contoso.com (should be blocked)"
     echo ""
     echo "3. Clean up with './remove-lab.sh' when done"
 else

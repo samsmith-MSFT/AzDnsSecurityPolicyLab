@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# Azure DNS Security Policy & Private Resolver Lab Deployment Script
-# This script deploys a complete DNS security policy and private resolver lab environment
+# Azure DNS Private Resolver Lab Deployment Script
+# This script deploys a complete DNS private resolver lab environment
+# with inbound/outbound endpoints, on-prem DNS forwarding, and DNS security policy
 # Designed for GitHub Codespaces - no prerequisites required
 
 set -e  # Exit on any error
 
 echo "========================================================"
-echo "Azure DNS Security Policy & Private Resolver Lab Deployment"
+echo "Azure DNS Private Resolver Lab Deployment"
 echo "========================================================"
 
 # Check if answers.json exists
@@ -168,7 +169,7 @@ echo "Creating resource group: $RESOURCE_GROUP_NAME"
 az group create \
     --name "$RESOURCE_GROUP_NAME" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab" "Environment=Lab"
+    --tags "Purpose=DNS-Resolver-Lab" "Environment=Lab"
 
 # Create Log Analytics Workspace
 echo ""
@@ -177,7 +178,7 @@ az monitor log-analytics workspace create \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --workspace-name "$LOG_ANALYTICS_WORKSPACE_NAME" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab"
+    --tags "Purpose=DNS-Resolver-Lab"
 
 # Create Virtual Network
 echo ""
@@ -189,7 +190,7 @@ az network vnet create \
     --subnet-name "$SUBNET_NAME" \
     --subnet-prefix "$SUBNET_ADDRESS_PREFIX" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab"
+    --tags "Purpose=DNS-Resolver-Lab"
 
 # Create Network Security Group (minimal rules for internal access only)
 echo ""
@@ -198,7 +199,7 @@ az network nsg create \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --name "$NSG_NAME" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab"
+    --tags "Purpose=DNS-Resolver-Lab"
 
 # Associate NSG with subnet
 echo "Associating NSG with subnet"
@@ -224,7 +225,7 @@ az vm create \
     --public-ip-address "" \
     --nsg "" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab"
+    --tags "Purpose=DNS-Resolver-Lab"
 
 # Enable managed boot diagnostics (no storage account needed, avoids firewall issues)
 echo ""
@@ -240,7 +241,7 @@ az dns-resolver policy create \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --name "$DNS_SECURITY_POLICY_NAME" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab"
+    --tags "Purpose=DNS-Resolver-Lab"
 
 # Get the VNet resource ID for linking
 VNET_ID=$(az network vnet show \
@@ -313,12 +314,12 @@ az monitor diagnostic-settings create \
     ]'
 
 # ==========================================
-# PRIVATE RESOLVER & ON-PREM DEMO
+# PRIVATE RESOLVER & ON-PREM ENVIRONMENT
 # ==========================================
 
 echo ""
 echo "=========================================="
-echo "Deploying Private Resolver & On-Prem Demo"
+echo "Deploying Private Resolver & On-Prem Environment"
 echo "=========================================="
 
 # Add resolver inbound subnet to hub VNet (delegated to Microsoft.Network/dnsResolvers)
@@ -366,7 +367,7 @@ az dns-resolver create \
     --name "$RESOLVER_NAME" \
     --location "$LOCATION" \
     --id "$VNET_ID" \
-    --tags "Purpose=DNS-Security-Lab"
+    --tags "Purpose=DNS-Resolver-Lab"
 
 # Get resolver inbound subnet ID
 RESOLVER_INBOUND_SUBNET_ID=$(az network vnet subnet show \
@@ -428,7 +429,7 @@ az dns-resolver forwarding-ruleset create \
     --name "$FORWARDING_RULESET_NAME" \
     --location "$LOCATION" \
     --outbound-endpoints "[{id:$OUTBOUND_ENDPOINT_ID}]" \
-    --tags "Purpose=DNS-Security-Lab"
+    --tags "Purpose=DNS-Resolver-Lab"
 
 # Link the forwarding ruleset to the hub VNet
 echo ""
@@ -464,7 +465,7 @@ az network vnet create \
     --subnet-name "$ONPREM_SUBNET_NAME" \
     --subnet-prefix "$ONPREM_SUBNET_ADDRESS_PREFIX" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab" "Environment=OnPrem-Simulated"
+    --tags "Purpose=DNS-Resolver-Lab" "Environment=OnPrem-Simulated"
 
 # Create on-prem NSG
 echo ""
@@ -473,7 +474,7 @@ az network nsg create \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --name "$ONPREM_NSG_NAME" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab"
+    --tags "Purpose=DNS-Resolver-Lab"
 
 # Associate on-prem NSG with subnet
 echo "Associating on-prem NSG with subnet"
@@ -534,7 +535,7 @@ az vm create \
     --public-ip-address "" \
     --nsg "" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab" "Role=DNS-Server"
+    --tags "Purpose=DNS-Resolver-Lab" "Role=DNS-Server"
 
 # If an allowed public IP is configured, add a public IP and NSG rule for RDP access
 if [[ -n "$ALLOWED_PUBLIC_IP" && "$ALLOWED_PUBLIC_IP" != "null" && "$ALLOWED_PUBLIC_IP" != "YOUR-PUBLIC-IP-HERE" ]]; then
@@ -546,7 +547,7 @@ if [[ -n "$ALLOWED_PUBLIC_IP" && "$ALLOWED_PUBLIC_IP" != "null" && "$ALLOWED_PUB
         --location "$LOCATION" \
         --sku Standard \
         --allocation-method Static \
-        --tags "Purpose=DNS-Security-Lab" "Role=DNS-Server"
+        --tags "Purpose=DNS-Resolver-Lab" "Role=DNS-Server"
 
     # Get the NIC name for the DNS server VM
     DNS_SERVER_NIC_ID=$(az vm show \
@@ -648,7 +649,7 @@ az vm create \
     --public-ip-address "" \
     --nsg "" \
     --location "$LOCATION" \
-    --tags "Purpose=DNS-Security-Lab" "Role=OnPrem-Client"
+    --tags "Purpose=DNS-Resolver-Lab" "Role=OnPrem-Client"
 
 # Enable managed boot diagnostics for on-prem client
 echo ""
@@ -696,7 +697,7 @@ az storage account create \
     --kind StorageV2 \
     --public-network-access Disabled \
     --allow-blob-public-access false \
-    --tags "Purpose=DNS-Security-Lab" "Role=PrivateEndpoint-Demo"
+    --tags "Purpose=DNS-Resolver-Lab" "Role=PrivateEndpoint-Demo"
 
 echo "Storage account created: $PE_STORAGE_ACCOUNT_NAME"
 
@@ -762,18 +763,7 @@ echo "------------------------"
 echo "Resource Group: $RESOURCE_GROUP_NAME"
 echo "Location: $LOCATION"
 echo ""
-echo "--- DNS Security Policy Demo ---"
-echo "Virtual Network: $VNET_NAME ($VNET_ADDRESS_SPACE)"
-echo "VM Name: $VM_NAME"
-echo "VM Username: $VM_ADMIN_USERNAME"
-echo "VM Password: [HIDDEN - provided during deployment]"
-echo "DNS Security Policy: $DNS_SECURITY_POLICY_NAME"
-echo "Domain List: $DOMAIN_LIST_NAME"
-echo "Blocked Domains: malicious.contoso.com., exploit.adatum.com."
-echo "Security Rule: $SECURITY_RULE_NAME (Priority: 100, Action: Block)"
-echo "Log Analytics Workspace: $LOG_ANALYTICS_WORKSPACE_NAME"
-echo ""
-echo "--- Private Resolver Demo ---"
+echo "--- Private Resolver ---"
 echo "DNS Private Resolver: $RESOLVER_NAME"
 echo "Resolver Inbound IP: $RESOLVER_INBOUND_IP"
 echo "Resolver Outbound Endpoint: $RESOLVER_OUTBOUND_ENDPOINT_NAME"
@@ -794,6 +784,17 @@ echo "  - DNS Zone: $ONPREM_DNS_DOMAIN ($ONPREM_DNS_RECORD_NAME.$ONPREM_DNS_DOMA
 echo "On-Prem Client: $ONPREM_CLIENT_VM_NAME (DNS: $DNS_SERVER_STATIC_IP)"
 echo "VNet Peering: hub <-> on-prem (Connected)"
 echo ""
+echo "--- DNS Security Policy (Add-on) ---"
+echo "Virtual Network: $VNET_NAME ($VNET_ADDRESS_SPACE)"
+echo "VM Name: $VM_NAME"
+echo "VM Username: $VM_ADMIN_USERNAME"
+echo "VM Password: [HIDDEN - provided during deployment]"
+echo "DNS Security Policy: $DNS_SECURITY_POLICY_NAME"
+echo "Domain List: $DOMAIN_LIST_NAME"
+echo "Blocked Domains: malicious.contoso.com., exploit.adatum.com."
+echo "Security Rule: $SECURITY_RULE_NAME (Priority: 100, Action: Block)"
+echo "Log Analytics Workspace: $LOG_ANALYTICS_WORKSPACE_NAME"
+echo ""
 echo "VM Access Instructions:"
 echo "----------------------"
 if [[ -n "$DNS_SERVER_PUBLIC_IP" ]]; then
@@ -811,18 +812,18 @@ echo ""
 echo "Note: Windows DNS Server ($DNS_SERVER_VM_NAME) uses SAC serial console."
 echo "      Type 'cmd' then 'ch -si 1' to access command prompt."
 echo ""
-echo "--- Test DNS Security Policy (from $VM_NAME) ---"
-echo "dig malicious.contoso.com    # Should return: blockpolicy.azuredns.invalid"
-echo "dig exploit.adatum.com       # Should return: blockpolicy.azuredns.invalid"
-echo "dig google.com               # Should resolve normally"
-echo ""
-echo "--- Test Private Endpoint Resolution (from $ONPREM_CLIENT_VM_NAME) ---"
+echo "--- Test Inbound Endpoint — Private Endpoint Resolution (from $ONPREM_CLIENT_VM_NAME) ---"
 echo "nslookup ${PE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net"
 echo "  # Should return private IP: $PE_PRIVATE_IP"
 echo "  # Resolution path: Client -> Windows DNS -> Private Resolver -> Private DNS Zone"
 echo ""
-echo "--- Test Outbound Endpoint Resolution (from $VM_NAME) ---"
+echo "--- Test Outbound Endpoint — On-Prem DNS Resolution (from $VM_NAME) ---"
 echo "dig ${ONPREM_DNS_RECORD_NAME}.${ONPREM_DNS_DOMAIN}"
 echo "  # Should return: $DNS_SERVER_STATIC_IP"
 echo "  # Resolution path: Ubuntu VM -> Azure DNS -> Outbound Endpoint -> Windows DNS Server"
+echo ""
+echo "--- Test DNS Security Policy (from $VM_NAME) ---"
+echo "dig malicious.contoso.com    # Should return: blockpolicy.azuredns.invalid"
+echo "dig exploit.adatum.com       # Should return: blockpolicy.azuredns.invalid"
+echo "dig google.com               # Should resolve normally"
 echo ""

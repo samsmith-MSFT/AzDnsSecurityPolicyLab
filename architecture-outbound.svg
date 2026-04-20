@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2E7D32"/>
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1565C0"/>
+    </marker>
+    <marker id="arrowhead-orange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#E65100"/>
+    </marker>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="780" fill="#fafafa" rx="8"/>
+
+  <!-- Azure Subscription -->
+  <rect x="15" y="15" width="1170" height="750" rx="10" fill="#e6f2ff" stroke="#0078D4" stroke-width="2.5" filter="url(#shadow)"/>
+  <text x="600" y="40" text-anchor="middle" font-size="16" font-weight="bold" fill="#0078D4">Azure Subscription</text>
+
+  <!-- Resource Group -->
+  <rect x="30" y="55" width="1140" height="700" rx="8" fill="#f5f5f5" stroke="#666" stroke-width="1.5"/>
+  <text x="600" y="75" text-anchor="middle" font-size="13" font-weight="bold" fill="#444">Resource Group: rg-dns-resolver-lab</text>
+
+  <!-- ==================== Hub VNet ==================== -->
+  <rect x="45" y="90" width="520" height="340" rx="8" fill="#e8f5e9" stroke="#2E7D32" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="305" y="112" text-anchor="middle" font-size="12" font-weight="bold" fill="#2E7D32">Hub VNet: vnet-dns-lab</text>
+  <text x="305" y="127" text-anchor="middle" font-size="10" fill="#1B5E20">10.0.0.0/16</text>
+
+  <!-- subnet-vm -->
+  <rect x="60" y="135" width="490" height="90" rx="5" fill="#c8e6c9" stroke="#388E3C" stroke-width="1"/>
+  <text x="305" y="151" text-anchor="middle" font-size="9" fill="#388E3C">subnet-vm — 10.0.1.0/24</text>
+  <rect x="75" y="158" width="460" height="58" rx="4" fill="#ffffff" stroke="#388E3C" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="85" y="168" width="36" height="36" rx="4" fill="#388E3C"/>
+  <text x="103" y="192" text-anchor="middle" font-size="16" fill="white">L</text>
+  <text x="130" y="181" font-size="11" font-weight="bold" fill="#333">vm-ubuntu-lab</text>
+  <text x="130" y="196" font-size="9" fill="#666">Ubuntu 22.04 | B1s | Hub VM</text>
+  <text x="130" y="210" font-size="9" fill="#1565C0">nslookup app.contoso.com → Azure DNS (168.63.129.16)</text>
+
+  <!-- subnet-resolver-outbound -->
+  <rect x="60" y="235" width="490" height="80" rx="5" fill="#c8e6c9" stroke="#388E3C" stroke-width="1"/>
+  <text x="305" y="251" text-anchor="middle" font-size="9" fill="#388E3C">subnet-resolver-outbound — 10.0.4.0/28 (delegated: Microsoft.Network/dnsResolvers)</text>
+  <rect x="75" y="258" width="460" height="48" rx="4" fill="#ffffff" stroke="#1565C0" stroke-width="1.5"/>
+  <rect x="85" y="268" width="36" height="36" rx="4" fill="#1565C0"/>
+  <text x="103" y="292" text-anchor="middle" font-size="14" fill="white">R</text>
+  <text x="130" y="281" font-size="10" font-weight="bold" fill="#333">DNS Private Resolver — Outbound Endpoint</text>
+  <text x="130" y="295" font-size="9" fill="#666">Dynamic IP assigned at deployment | Forwards to on-prem DNS</text>
+
+  <!-- subnet-resolver-inbound (shown dimmed for context) -->
+  <rect x="60" y="325" width="490" height="45" rx="5" fill="#c8e6c9" stroke="#388E3C" stroke-width="0.5" opacity="0.4"/>
+  <text x="305" y="352" text-anchor="middle" font-size="9" fill="#388E3C" opacity="0.5">subnet-resolver-inbound — 10.0.2.0/28 (used in inbound flow)</text>
+
+  <!-- NSG label for hub -->
+  <text x="70" y="420" font-size="8" fill="#999">NSG: nsg-lab</text>
+
+  <!-- ==================== On-Prem VNet ==================== -->
+  <rect x="640" y="90" width="520" height="340" rx="8" fill="#fff3e0" stroke="#E65100" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="900" y="112" text-anchor="middle" font-size="12" font-weight="bold" fill="#E65100">On-Prem VNet: vnet-onprem-lab</text>
+  <text x="900" y="127" text-anchor="middle" font-size="10" fill="#BF360C">10.1.0.0/16</text>
+
+  <!-- subnet-onprem -->
+  <rect x="655" y="135" width="490" height="280" rx="6" fill="#fff8e1" stroke="#F57F17" stroke-width="1"/>
+  <text x="900" y="153" text-anchor="middle" font-size="10" fill="#F57F17">subnet-onprem — 10.1.1.0/24</text>
+
+  <!-- Windows DNS Server -->
+  <rect x="670" y="165" width="460" height="130" rx="6" fill="#ffffff" stroke="#0078D4" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="680" y="175" width="36" height="36" rx="4" fill="#0078D4"/>
+  <text x="698" y="199" text-anchor="middle" font-size="16" fill="white">W</text>
+  <text x="725" y="188" font-size="11" font-weight="bold" fill="#333">vm-dns-server</text>
+  <text x="725" y="203" font-size="9" fill="#666">Windows Server 2022 | B2s | Static IP: 10.1.1.4</text>
+  <text x="725" y="218" font-size="9" fill="#666">Roles: DNS Server</text>
+  <text x="680" y="245" font-size="9" fill="#E65100">On-Prem DNS Zone:</text>
+  <text x="680" y="258" font-size="9" font-weight="bold" fill="#E65100">contoso.com (configurable via answers.json)</text>
+  <text x="680" y="271" font-size="9" fill="#1565C0">A Record: app.contoso.com → 10.1.1.100</text>
+  <text x="680" y="284" font-size="8" fill="#999">NSG: nsg-onprem-lab</text>
+
+  <!-- On-Prem Client (dimmed for context) -->
+  <rect x="670" y="310" width="460" height="85" rx="6" fill="#ffffff" stroke="#E65100" stroke-width="1" opacity="0.4" filter="url(#shadow)"/>
+  <rect x="680" y="320" width="36" height="36" rx="4" fill="#E65100" opacity="0.4"/>
+  <text x="698" y="344" text-anchor="middle" font-size="16" fill="white" opacity="0.4">L</text>
+  <text x="725" y="333" font-size="11" font-weight="bold" fill="#333" opacity="0.4">vm-onprem-client</text>
+  <text x="725" y="348" font-size="9" fill="#666" opacity="0.4">Ubuntu 22.04 | B1s (used in inbound flow)</text>
+  <text x="725" y="363" font-size="9" fill="#666" opacity="0.4">DNS configured: 10.1.1.4 (Windows DNS Server)</text>
+
+  <!-- ==================== VNet Peering Arrow ==================== -->
+  <line x1="565" y1="275" x2="640" y2="275" stroke="#6A1B9A" stroke-width="2.5" stroke-dasharray="8,4" marker-end="url(#arrowhead)"/>
+  <line x1="640" y1="285" x2="565" y2="285" stroke="#6A1B9A" stroke-width="2.5" stroke-dasharray="8,4" marker-end="url(#arrowhead)"/>
+  <text x="603" y="270" text-anchor="middle" font-size="8" fill="#6A1B9A" font-weight="bold">VNet</text>
+  <text x="603" y="298" text-anchor="middle" font-size="8" fill="#6A1B9A" font-weight="bold">Peering</text>
+
+  <!-- ==================== Bottom Services Row ==================== -->
+
+  <!-- DNS Forwarding Ruleset -->
+  <rect x="45" y="455" width="380" height="110" rx="6" fill="#e3f2fd" stroke="#1565C0" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="55" y="465" width="30" height="30" rx="4" fill="#0D47A1"/>
+  <text x="70" y="485" text-anchor="middle" font-size="14" fill="white">F</text>
+  <text x="93" y="478" font-size="10" font-weight="bold" fill="#1565C0">DNS Forwarding Ruleset</text>
+  <text x="55" y="505" font-size="9" fill="#333">dns-forwarding-ruleset-lab</text>
+  <text x="55" y="520" font-size="9" fill="#666">• Linked to Hub VNet (vnet-dns-lab)</text>
+  <text x="55" y="535" font-size="9" fill="#666">• Rule: fwd-onprem-domain</text>
+  <text x="55" y="550" font-size="9" fill="#666">• Domain: contoso.com. → 10.1.1.4:53</text>
+
+  <!-- Arrow: Forwarding Ruleset linked to Hub VNet -->
+  <line x1="235" y1="455" x2="305" y2="430" stroke="#1565C0" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrowhead-blue)"/>
+  <text x="290" y="450" font-size="8" fill="#1565C0" font-style="italic">Linked to Hub VNet</text>
+
+  <!-- Azure DNS (168.63.129.16) -->
+  <rect x="460" y="455" width="250" height="110" rx="6" fill="#e3f2fd" stroke="#1565C0" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="470" y="465" width="30" height="30" rx="4" fill="#0D47A1"/>
+  <text x="485" y="485" text-anchor="middle" font-size="14" fill="white">D</text>
+  <text x="508" y="478" font-size="10" font-weight="bold" fill="#1565C0">Azure DNS</text>
+  <text x="470" y="505" font-size="9" fill="#333">168.63.129.16 (virtual IP)</text>
+  <text x="470" y="520" font-size="9" fill="#666">• Default DNS for Azure VMs</text>
+  <text x="470" y="535" font-size="9" fill="#666">• Checks forwarding ruleset for matching rules</text>
+  <text x="470" y="550" font-size="9" fill="#666">• Routes matching queries to outbound endpoint</text>
+
+  <!-- Log Analytics Workspace -->
+  <rect x="740" y="455" width="280" height="110" rx="6" fill="#e3f2fd" stroke="#1565C0" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="750" y="465" width="30" height="30" rx="4" fill="#0D47A1"/>
+  <text x="765" y="485" text-anchor="middle" font-size="14" fill="white">L</text>
+  <text x="788" y="478" font-size="10" font-weight="bold" fill="#1565C0">Log Analytics Workspace</text>
+  <text x="750" y="505" font-size="9" fill="#333">law-dns-resolver-lab</text>
+  <text x="750" y="520" font-size="9" fill="#666">• DNS Query Logs (DnsQueryLogs)</text>
+  <text x="750" y="535" font-size="9" fill="#666">• Outbound query monitoring</text>
+  <text x="750" y="550" font-size="9" fill="#666">• KQL queries for analysis</text>
+
+  <!-- ==================== DNS Resolution Flow ==================== -->
+  <rect x="45" y="590" width="1120" height="80" rx="8" fill="#fff3e0" stroke="#E65100" stroke-width="2"/>
+  <text x="605" y="612" text-anchor="middle" font-size="11" font-weight="bold" fill="#E65100">Outbound DNS Resolution Flow (from hub VM to on-prem)</text>
+
+  <!-- Flow boxes -->
+  <rect x="60" y="625" width="105" height="35" rx="4" fill="#e8f5e9" stroke="#2E7D32" stroke-width="1"/>
+  <text x="112" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Hub VM</text>
+  <text x="112" y="653" text-anchor="middle" font-size="8" fill="#666">vm-ubuntu-lab</text>
+
+  <text x="173" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="185" y="625" width="105" height="35" rx="4" fill="#e3f2fd" stroke="#1565C0" stroke-width="1"/>
+  <text x="237" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Azure DNS</text>
+  <text x="237" y="653" text-anchor="middle" font-size="8" fill="#666">168.63.129.16</text>
+
+  <text x="298" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="310" y="625" width="130" height="35" rx="4" fill="#e3f2fd" stroke="#0D47A1" stroke-width="1"/>
+  <text x="375" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Forwarding Ruleset</text>
+  <text x="375" y="653" text-anchor="middle" font-size="8" fill="#666">contoso.com match</text>
+
+  <text x="448" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="460" y="625" width="135" height="35" rx="4" fill="#e8f5e9" stroke="#2E7D32" stroke-width="1"/>
+  <text x="527" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Private Resolver</text>
+  <text x="527" y="653" text-anchor="middle" font-size="8" fill="#666">Outbound Endpoint</text>
+
+  <text x="603" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="615" y="625" width="100" height="35" rx="4" fill="#e1bee7" stroke="#6A1B9A" stroke-width="1"/>
+  <text x="665" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">VNet Peering</text>
+  <text x="665" y="653" text-anchor="middle" font-size="8" fill="#666">hub ↔ on-prem</text>
+
+  <text x="723" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="735" y="625" width="120" height="35" rx="4" fill="#fff3e0" stroke="#E65100" stroke-width="1"/>
+  <text x="795" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Windows DNS</text>
+  <text x="795" y="653" text-anchor="middle" font-size="8" fill="#666">10.1.1.4</text>
+
+  <text x="863" y="645" font-size="12" fill="#333">→</text>
+
+  <rect x="875" y="625" width="155" height="35" rx="4" fill="#ffffff" stroke="#E65100" stroke-width="1.5"/>
+  <text x="952" y="641" text-anchor="middle" font-size="9" font-weight="bold" fill="#E65100">On-Prem IP</text>
+  <text x="952" y="653" text-anchor="middle" font-size="8" fill="#666">10.1.1.100 (app record)</text>
+
+  <!-- ==================== Main Resolution Flow Arrows ==================== -->
+  <!-- Arrow: Hub VM to Azure DNS (implicit, query goes to 168.63.129.16) -->
+  <path d="M 305 216 L 305 230" fill="none" stroke="#2E7D32" stroke-width="1.5" marker-end="url(#arrowhead-green)"/>
+  <text x="315" y="228" font-size="8" fill="#2E7D32" font-style="italic">DNS query</text>
+
+  <!-- Arrow: Outbound Endpoint to On-Prem DNS (through VNet peering) -->
+  <path d="M 550 280 C 590 280, 620 240, 670 240" fill="none" stroke="#E65100" stroke-width="2" marker-end="url(#arrowhead-orange)"/>
+  <text x="590" y="245" font-size="8" font-weight="bold" fill="#E65100">Forward via</text>
+  <text x="590" y="255" font-size="8" font-weight="bold" fill="#E65100">Outbound EP</text>
+
+  <!-- ==================== Legend ==================== -->
+  <rect x="45" y="690" width="1120" height="55" rx="6" fill="#ffffff" stroke="#333" stroke-width="1"/>
+  <text x="80" y="710" font-size="10" font-weight="bold" fill="#333">Legend:</text>
+
+  <line x1="130" y1="707" x2="160" y2="707" stroke="#2E7D32" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="168" y="711" font-size="9" fill="#333">Hub VNet</text>
+
+  <line x1="240" y1="707" x2="270" y2="707" stroke="#E65100" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="278" y="711" font-size="9" fill="#333">On-Prem VNet</text>
+
+  <line x1="370" y1="707" x2="400" y2="707" stroke="#6A1B9A" stroke-width="2.5" stroke-dasharray="8,4"/>
+  <text x="408" y="711" font-size="9" fill="#333">VNet Peering</text>
+
+  <line x1="500" y1="707" x2="530" y2="707" stroke="#E65100" stroke-width="2"/>
+  <text x="538" y="711" font-size="9" fill="#333">Outbound DNS path</text>
+
+  <line x1="660" y1="707" x2="690" y2="707" stroke="#1565C0" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="698" y="711" font-size="9" fill="#333">Resource linkage</text>
+
+  <rect x="800" y="700" width="16" height="12" rx="2" fill="#fff3e0" stroke="#E65100" stroke-width="1"/>
+  <text x="824" y="711" font-size="9" fill="#333">Resolution flow</text>
+
+  <text x="80" y="735" font-size="8" fill="#999" font-style="italic">Dimmed elements are used in other flows (inbound). See architecture.svg for the inbound resolution diagram.</text>
+
+  <!-- Title -->
+  <text x="600" y="760" text-anchor="middle" font-size="10" fill="#999">Azure DNS Private Resolver Lab — Outbound Resolution Architecture</text>
+  <text x="600" y="773" text-anchor="middle" font-size="9" fill="#bbb">Demo 2: Outbound DNS Forwarding — Hub VM → Azure DNS → Forwarding Ruleset → Outbound Endpoint → On-Prem DNS</text>
+</svg>

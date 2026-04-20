@@ -1,21 +1,12 @@
-# Azure DNS Security Policy & Private Resolver Lab
+# Azure DNS Private Resolver Lab
 
-A complete lab environment for testing and learning Azure DNS Security Policies and Azure DNS Private Resolver with simulated on-premises connectivity. This lab demonstrates how to deploy and configure DNS security policies to block malicious domains, and how to use a Private Resolver with on-premises DNS forwarding to resolve private endpoints — all using Azure CLI automation in GitHub Codespaces.
+A complete lab environment for testing and learning Azure DNS Private Resolver with simulated on-premises connectivity and DNS security policies. This lab demonstrates how to deploy and configure a Private Resolver with inbound and outbound endpoints for on-premises DNS forwarding, private endpoint resolution, and DNS security policy integration — all using Azure CLI automation in GitHub Codespaces.
 
 ## Lab Overview
 
 This lab creates a complete Azure environment with three demos:
 
-### Demo 1: DNS Security Policy
-- **Virtual Network** with an Ubuntu 22.04 LTS virtual machine (no public IP - serial console access)
-- **Azure DNS Security Policy** linked to the virtual network
-- **DNS Domain List** with malicious domains (`malicious.contoso.com.`, `exploit.adatum.com.`)
-- **DNS Security Rules** to block specific domains with blockpolicy.azuredns.invalid response
-- **Network Security Group** for internal access only
-- **Log Analytics Workspace** for DNS query monitoring and diagnostics
-- **Diagnostic Settings** configured to capture all DNS security events
-
-### Demo 2: Private Resolver Inbound & On-Premises DNS Forwarding
+### Demo 1: Private Resolver Inbound & On-Premises DNS Forwarding
 - **Azure DNS Private Resolver** with inbound endpoint in the hub VNet
 - **Simulated on-premises environment** with a separate VNet (peered to hub)
 - **Windows Server 2022** with DNS Server role and conditional forwarder to the Private Resolver
@@ -24,15 +15,30 @@ This lab creates a complete Azure environment with three demos:
 - **Private DNS Zone** (`privatelink.blob.core.windows.net`) linked to the hub VNet
 - **VNet peering** connecting the on-prem and hub networks
 
-### Demo 3: Private Resolver Outbound — Resolve On-Prem DNS from Azure
+### Demo 2: Private Resolver Outbound — Resolve On-Prem DNS from Azure
 - **Outbound endpoint** on the Private Resolver for forwarding DNS queries to on-prem
 - **DNS forwarding ruleset** linked to the hub VNet with a rule for the on-prem domain (configurable via `onpremDnsDomain` in `answers.json`, default: `contoso.com`)
 - **Forward lookup zone** on the Windows DNS Server with a configurable A record (default: `dns.contoso.com`)
 - **Test from Azure Ubuntu VM** — queries for the on-prem domain are forwarded via the outbound endpoint to the on-prem Windows DNS Server
 
+### Demo 3: DNS Security Policy (Add-on)
+- **Virtual Network** with an Ubuntu 22.04 LTS virtual machine (no public IP - serial console access)
+- **Azure DNS Security Policy** linked to the virtual network
+- **DNS Domain List** with malicious domains (`malicious.contoso.com.`, `exploit.adatum.com.`)
+- **DNS Security Rules** to block specific domains with blockpolicy.azuredns.invalid response
+- **Network Security Group** for internal access only
+- **Log Analytics Workspace** for DNS query monitoring and diagnostics
+- **Diagnostic Settings** configured to capture all DNS security events
+
 ## Architecture
 
-![Architecture Diagram](architecture.svg)
+### Inbound Resolution (On-Prem → Azure)
+
+![Inbound Architecture Diagram](architecture.svg)
+
+### Outbound Resolution (Azure → On-Prem)
+
+![Outbound Architecture Diagram](architecture-outbound.svg)
 
 ## Prerequisites
 
@@ -100,41 +106,15 @@ Run the deployment script:
 The script will:
 - Prompt for Azure authentication via device code
 - Request a secure password for all VMs (Ubuntu, Windows DNS Server, on-prem client)
-- Deploy all Azure resources (DNS Security Policy, Private Resolver, on-prem VMs, storage + PE)
-- Configure DNS security policies and monitoring
+- Deploy all Azure resources (Private Resolver, on-prem VMs, storage + PE, DNS Security Policy)
+- Configure Private Resolver with inbound and outbound endpoints
 - Configure Windows DNS Server with conditional forwarder
 - Set up VNet peering and private endpoint
+- Configure DNS security policies and monitoring
 
-### 4. Test DNS Security Policy (Demo 1)
+### 4. Test Private Resolver Inbound & On-Prem DNS (Demo 1)
 
-After deployment, access the Ubuntu VM via the Azure Portal:
-
-1. Go to [Azure Portal](https://portal.azure.com)
-2. Navigate to Virtual Machines
-3. Select `vm-ubuntu-lab` in the resource group
-4. Click "Serial console" in the left menu
-5. Login with the credentials you provided
-
-Test DNS blocking from the VM:
-```bash
-# Test blocked domains (should return blockpolicy.azuredns.invalid)
-dig malicious.contoso.com
-dig exploit.adatum.com
-
-# Test allowed domains (should resolve normally)
-dig google.com
-dig microsoft.com
-
-# For more detailed output, use:
-dig malicious.contoso.com +short
-dig @8.8.8.8 google.com  # Test with external DNS for comparison
-```
-
-**Expected Results:**
-- **Blocked domains**: Should return `blockpolicy.azuredns.invalid`
-- **Allowed domains**: Should return IP addresses normally
-
-### 5. Test Private Resolver & On-Prem DNS (Demo 2)
+### 4. Test Private Resolver Inbound & On-Prem DNS (Demo 1)
 
 Access the on-prem client VM via the Azure Portal:
 
@@ -174,7 +154,7 @@ powershell -Command "Get-DnsServerResourceRecord -ZoneName '<onpremDnsDomain>'"
 powershell -Command "Get-DnsServerForwarder"
 ```
 
-### 6. Test Outbound Endpoint — Resolve On-Prem DNS from Azure (Demo 3)
+### 5. Test Outbound Endpoint — Resolve On-Prem DNS from Azure (Demo 2)
 
 This tests the reverse direction: Azure VMs resolving on-prem DNS zones via the Private Resolver outbound endpoint and DNS forwarding ruleset. The domain and record name are configurable in `answers.json` via `onpremDnsDomain` and `onpremDnsRecordName` (defaults shown below).
 
@@ -195,11 +175,40 @@ nslookup dns.contoso.com
 
 If the query returns `NXDOMAIN`, the forwarding ruleset may not be linked to the hub VNet. If it times out, check VNet peering and ensure DNS traffic (UDP 53) is not blocked by NSG rules.
 
+### 6. Test DNS Security Policy (Demo 3)
+
+After deployment, access the Ubuntu VM via the Azure Portal:
+
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Navigate to Virtual Machines
+3. Select `vm-ubuntu-lab` in the resource group
+4. Click "Serial console" in the left menu
+5. Login with the credentials you provided
+
+Test DNS blocking from the VM:
+```bash
+# Test blocked domains (should return blockpolicy.azuredns.invalid)
+dig malicious.contoso.com
+dig exploit.adatum.com
+
+# Test allowed domains (should resolve normally)
+dig google.com
+dig microsoft.com
+
+# For more detailed output, use:
+dig malicious.contoso.com +short
+dig @8.8.8.8 google.com  # Test with external DNS for comparison
+```
+
+**Expected Results:**
+- **Blocked domains**: Should return `blockpolicy.azuredns.invalid`
+- **Allowed domains**: Should return IP addresses normally
+
 ### 7. Monitor DNS Activity
 
 View DNS logs in Log Analytics:
 1. Go to your resource group in Azure Portal
-2. Open the Log Analytics workspace (`law-dns-security-lab`)
+2. Open the Log Analytics workspace (`law-dns-resolver-lab`)
 3. Click "Logs" and run KQL queries
 
 ### 8. Clean Up
@@ -222,7 +231,7 @@ The lab includes a Log Analytics workspace that automatically collects DNS query
 
 1. Navigate to your DNS security policy in the Azure Portal
 2. Under **Monitoring**, select **Diagnostic settings**
-3. Select your Log Analytics workspace (`law-dns-security-lab`)
+3. Select your Log Analytics workspace (`law-dns-resolver-lab`)
 4. Click **Logs** to open the query interface
 
 ### Sample KQL Queries
@@ -257,7 +266,7 @@ DNSQueryLogs
 
 // View queries from specific virtual network
 DNSQueryLogs
-| where VirtualNetworkId contains "vnet-dns-security-lab"
+| where VirtualNetworkId contains "vnet-dns-lab"
 | project TimeGenerated, QueryName, SourceIpAddress, QueryType, ResponseCode
 | limit 100
 
@@ -375,35 +384,6 @@ DNSQueryLogs
 
 ## Detailed Configuration
 
-### DNS Security Policy Details
-
-The lab creates a DNS security policy with the following configuration:
-
-- **Policy Name**: `dns-security-policy-lab`
-- **Action**: Block
-- **Response Code**: blockpolicy.azuredns.invalid
-- **Priority**: 100
-- **State**: Enabled
-- **Blocked Domains**:
-  - `malicious.contoso.com.` (note the trailing dot)
-  - `exploit.adatum.com.` (note the trailing dot)
-
-### Network Configuration
-
-- **Hub Virtual Network**: `vnet-dns-lab` (10.0.0.0/16)
-  - **Subnet (VM)**: `subnet-vm` (10.0.1.0/24) — Ubuntu VM
-  - **Subnet (Resolver Inbound)**: `subnet-resolver-inbound` (10.0.2.0/28) — Private Resolver inbound endpoint
-  - **Subnet (PE)**: `subnet-pe` (10.0.3.0/24) — Private endpoint for storage
-  - **Subnet (Resolver Outbound)**: `subnet-resolver-outbound` (10.0.4.0/28) — Private Resolver outbound endpoint
-- **On-Prem Virtual Network**: `vnet-onprem-lab` (10.1.0.0/16)
-  - **Subnet**: `subnet-onprem` (10.1.1.0/24) — Windows DNS Server + Ubuntu client
-- **VNet Peering**: hub ↔ on-prem (bidirectional, forwarded traffic allowed)
-- **VMs**:
-  - `vm-ubuntu-lab` — Ubuntu 22.04 LTS, Standard_B1s (DNS Security Policy + outbound endpoint test)
-  - `vm-dns-server` — Windows Server 2022, Standard_B2s, IP: 10.1.1.4 (DNS Server role)
-  - `vm-onprem-client` — Ubuntu 22.04 LTS, Standard_B1s (on-prem client)
-- **Access**: Serial console only (no public IPs), or RDP to DNS Server if `allowedPublicIp` is configured
-
 ### Private Resolver Configuration
 
 - **DNS Private Resolver**: `dns-resolver-lab` in hub VNet
@@ -417,15 +397,61 @@ The lab creates a DNS security policy with the following configuration:
 - **Private DNS Zone**: `privatelink.blob.core.windows.net` linked to hub VNet
 - **DNS Zone Group**: Auto-registers storage account A record in Private DNS Zone
 
+### Network Configuration
+
+- **Hub Virtual Network**: `vnet-dns-lab` (10.0.0.0/16)
+  - **Subnet (VM)**: `subnet-vm` (10.0.1.0/24) — Ubuntu VM
+  - **Subnet (Resolver Inbound)**: `subnet-resolver-inbound` (10.0.2.0/28) — Private Resolver inbound endpoint
+  - **Subnet (PE)**: `subnet-pe` (10.0.3.0/24) — Private endpoint for storage
+  - **Subnet (Resolver Outbound)**: `subnet-resolver-outbound` (10.0.4.0/28) — Private Resolver outbound endpoint
+- **On-Prem Virtual Network**: `vnet-onprem-lab` (10.1.0.0/16)
+  - **Subnet**: `subnet-onprem` (10.1.1.0/24) — Windows DNS Server + Ubuntu client
+- **VNet Peering**: hub ↔ on-prem (bidirectional, forwarded traffic allowed)
+- **VMs**:
+  - `vm-ubuntu-lab` — Ubuntu 22.04 LTS, Standard_B1s (outbound endpoint + DNS security policy test)
+  - `vm-dns-server` — Windows Server 2022, Standard_B2s, IP: 10.1.1.4 (DNS Server role)
+  - `vm-onprem-client` — Ubuntu 22.04 LTS, Standard_B1s (on-prem client)
+- **Access**: Serial console only (no public IPs), or RDP to DNS Server if `allowedPublicIp` is configured
+
+### DNS Security Policy Configuration (Add-on)
+
+The lab creates a DNS security policy with the following configuration:
+
+- **Policy Name**: `dns-security-policy-lab`
+- **Action**: Block
+- **Response Code**: blockpolicy.azuredns.invalid
+- **Priority**: 100
+- **State**: Enabled
+- **Blocked Domains**:
+  - `malicious.contoso.com.` (note the trailing dot)
+  - `exploit.adatum.com.` (note the trailing dot)
+
 ### Monitoring Configuration
 
-- **Log Analytics Workspace**: `law-dns-security-lab`
+- **Log Analytics Workspace**: `law-dns-resolver-lab`
 - **Diagnostic Settings**: Configured to capture DNS query logs
 - **Data Retention**: Default Log Analytics retention policy
 
 ## Lab Scenarios
 
-### Scenario 1: Basic DNS Blocking Test
+### Scenario 1: Private Endpoint Resolution via On-Prem DNS
+
+1. Access `vm-onprem-client` via serial console
+2. Run `nslookup <storage-account>.blob.core.windows.net`
+3. Verify it returns a private IP (10.0.3.x) — not a public IP
+4. The resolution path is: Client → Windows DNS (10.1.1.4) → Conditional Forwarder → Private Resolver → Private DNS Zone → Private IP
+5. (Optional) Access `vm-dns-server` via serial console (SAC: `cmd` → `ch -si 1`)
+6. Verify conditional forwarder: `powershell -Command "Get-DnsServerZone | Where-Object ZoneType -eq 'Forwarder'"`
+
+### Scenario 2: Outbound Endpoint — Resolve On-Prem DNS from Azure
+
+1. Access `vm-ubuntu-lab` via serial console
+2. Run `dig <onpremDnsRecordName>.<onpremDnsDomain>` (default: `dig dns.contoso.com`)
+3. Verify it returns 10.1.1.4 (the Windows DNS Server IP)
+4. The resolution path is: Ubuntu VM → Azure DNS → Forwarding Ruleset → Outbound Endpoint → Windows DNS Server → on-prem zone
+5. (Optional) Verify the zone on the DNS server: `powershell -Command "Get-DnsServerResourceRecord -ZoneName '<onpremDnsDomain>'"`
+
+### Scenario 3: Basic DNS Blocking Test
 
 1. Deploy the lab environment
 2. Connect to VM via serial console
@@ -455,23 +481,6 @@ dig google.com +short
 ```
 
 4. Verify results in Log Analytics (queries appear within 1-2 minutes)
-
-### Scenario 2: Private Endpoint Resolution via On-Prem DNS
-
-1. Access `vm-onprem-client` via serial console
-2. Run `nslookup <storage-account>.blob.core.windows.net`
-3. Verify it returns a private IP (10.0.3.x) — not a public IP
-4. The resolution path is: Client → Windows DNS (10.1.1.4) → Conditional Forwarder → Private Resolver → Private DNS Zone → Private IP
-5. (Optional) Access `vm-dns-server` via serial console (SAC: `cmd` → `ch -si 1`)
-6. Verify conditional forwarder: `powershell -Command "Get-DnsServerZone | Where-Object ZoneType -eq 'Forwarder'"`
-
-### Scenario 3: Outbound Endpoint — Resolve On-Prem DNS from Azure
-
-1. Access `vm-ubuntu-lab` via serial console
-2. Run `dig <onpremDnsRecordName>.<onpremDnsDomain>` (default: `dig dns.contoso.com`)
-3. Verify it returns 10.1.1.4 (the Windows DNS Server IP)
-4. The resolution path is: Ubuntu VM → Azure DNS → Forwarding Ruleset → Outbound Endpoint → Windows DNS Server → on-prem zone
-5. (Optional) Verify the zone on the DNS server: `powershell -Command "Get-DnsServerResourceRecord -ZoneName '<onpremDnsDomain>'"`
 
 ### Scenario 4: DNS Policy Modification
 
@@ -508,14 +517,15 @@ This checks for:
 AzDnsSecurityPolicyLab/
 ├── README.md                    # This documentation
 ├── FILE_OVERVIEW.md             # Detailed file descriptions
-├── architecture.svg             # Architecture diagram (rendered in README)
+├── architecture.svg             # Inbound resolution architecture diagram
+├── architecture-outbound.svg    # Outbound resolution architecture diagram
 ├── architecture.drawio          # Editable diagram source (Draw.io extension)
 ├── answers.json                 # Configuration file (update with your subscription)
 ├── answers.json.template        # Template for configuration
-├── deploy-lab.sh               # Main deployment script (DNS Policy + Private Resolver + On-Prem)
+├── deploy-lab.sh               # Main deployment script (Private Resolver + On-Prem + DNS Security Policy)
 ├── remove-lab.sh               # Lab cleanup script (deletes entire resource group)
 ├── validate-environment.sh     # Pre-deployment validation
-├── test-dns-policy.sh          # Testing instructions for both demos
+├── test-dns-policy.sh          # Testing instructions for all demos
 └── .devcontainer/              # GitHub Codespaces configuration
     └── devcontainer.json       # Container setup and tools
 ```
@@ -609,10 +619,10 @@ AzDnsSecurityPolicyLab/
 
 ## Learning Resources
 
-- [Azure DNS Security Policies Documentation](https://docs.microsoft.com/en-us/azure/dns/dns-security-policy-overview)
 - [Azure DNS Private Resolver Documentation](https://docs.microsoft.com/en-us/azure/dns/dns-private-resolver-overview)
-- [Azure Private Endpoint DNS Configuration](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-dns)
 - [Azure DNS Resolver Documentation](https://docs.microsoft.com/en-us/azure/dns/dns-resolver-overview)
+- [Azure Private Endpoint DNS Configuration](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-dns)
+- [Azure DNS Security Policies Documentation](https://docs.microsoft.com/en-us/azure/dns/dns-security-policy-overview)
 - [Azure Monitor and Log Analytics](https://docs.microsoft.com/en-us/azure/azure-monitor/)
 - [KQL Query Language Reference](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/)
 
