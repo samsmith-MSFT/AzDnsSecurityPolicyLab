@@ -28,8 +28,6 @@ This lab creates a complete Azure environment with two demos:
 
 ![Architecture Diagram](architecture.svg)
 
-> The source diagram is also available as [architecture.drawio](architecture.drawio) for editing with the [Draw.io VS Code extension](https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio).
-
 ## Prerequisites
 
 **NONE!** This lab is designed to run in GitHub Codespaces with no additional setup required.
