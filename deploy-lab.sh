@@ -650,8 +650,8 @@ az vm run-command invoke \
         # Add conditional forwarder for blob.core.windows.net -> Private Resolver inbound IP
         Add-DnsServerConditionalForwarderZone -Name 'blob.core.windows.net' -MasterServers $RESOLVER_INBOUND_IP -PassThru
 
-        # Create forward lookup zone for on-prem domain
-        Add-DnsServerPrimaryZone -Name '$ONPREM_DNS_DOMAIN' -ReplicationScope None -ZoneFile '${ONPREM_DNS_DOMAIN}.dns' -PassThru
+        # Create forward lookup zone for on-prem domain (file-backed, non-AD-integrated)
+        Add-DnsServerPrimaryZone -Name '$ONPREM_DNS_DOMAIN' -ZoneFile '${ONPREM_DNS_DOMAIN}.dns' -PassThru
 
         # Add A record
         Add-DnsServerResourceRecordA -ZoneName '$ONPREM_DNS_DOMAIN' -Name '$ONPREM_DNS_RECORD_NAME' -IPv4Address '$DNS_SERVER_STATIC_IP' -PassThru
