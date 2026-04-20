@@ -218,25 +218,12 @@ az vm create \
     --location "$LOCATION" \
     --tags "Purpose=DNS-Security-Lab"
 
-# Create storage account for boot diagnostics
+# Enable managed boot diagnostics (no storage account needed, avoids firewall issues)
 echo ""
-echo "Creating storage account for boot diagnostics..."
-STORAGE_ACCOUNT_NAME="sa$(echo $RESOURCE_GROUP_NAME | tr -d '-' | tr '[:upper:]' '[:lower:]')$(date +%s | tail -c 6)"
-az storage account create \
-    --resource-group "$RESOURCE_GROUP_NAME" \
-    --name "$STORAGE_ACCOUNT_NAME" \
-    --location "$LOCATION" \
-    --sku Standard_LRS \
-    --kind StorageV2 \
-    --tags "Purpose=DNS-Security-Lab"
-
-# Enable boot diagnostics
-echo ""
-echo "Enabling boot diagnostics for VM: $VM_NAME"
+echo "Enabling managed boot diagnostics for VM: $VM_NAME"
 az vm boot-diagnostics enable \
     --resource-group "$RESOURCE_GROUP_NAME" \
-    --name "$VM_NAME" \
-    --storage "$STORAGE_ACCOUNT_NAME"
+    --name "$VM_NAME"
 
 # Create DNS Security Policy
 echo ""
@@ -473,6 +460,13 @@ az vm create \
     --location "$LOCATION" \
     --tags "Purpose=DNS-Security-Lab" "Role=DNS-Server"
 
+# Enable managed boot diagnostics for Windows DNS Server
+echo ""
+echo "Enabling managed boot diagnostics for VM: $DNS_SERVER_VM_NAME"
+az vm boot-diagnostics enable \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --name "$DNS_SERVER_VM_NAME"
+
 # Configure Windows DNS Server role and conditional forwarder via run-command
 echo ""
 echo "Configuring Windows DNS Server role and conditional forwarder..."
@@ -512,6 +506,13 @@ az vm create \
     --nsg "" \
     --location "$LOCATION" \
     --tags "Purpose=DNS-Security-Lab" "Role=OnPrem-Client"
+
+# Enable managed boot diagnostics for on-prem client
+echo ""
+echo "Enabling managed boot diagnostics for VM: $ONPREM_CLIENT_VM_NAME"
+az vm boot-diagnostics enable \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --name "$ONPREM_CLIENT_VM_NAME"
 
 # Configure on-prem client DNS to use Windows DNS Server via run-command
 echo ""
