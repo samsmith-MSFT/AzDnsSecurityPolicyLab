@@ -26,73 +26,29 @@ This lab creates a complete Azure environment with two demos:
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    subgraph AZ["Azure Subscription"]
-        subgraph RG["Resource Group: rg-dns-security-lab"]
+The architecture diagram is maintained as a draw.io file for easy editing and visualization.
 
-            subgraph ONPREM["On-Prem VNet: vnet-onprem-lab — 10.1.0.0/16"]
-                subgraph ONPREM_SUB["subnet-onprem — 10.1.1.0/24"]
-                    DNS_SRV["vm-dns-server\nWindows Server 2022 B2s\nIP: 10.1.1.4\nDNS Server Role"]
-                    CLIENT["vm-onprem-client\nUbuntu 22.04 B1s\nDNS: 10.1.1.4"]
-                end
-            end
+**[Open architecture.drawio](architecture.drawio)** (requires the [Draw.io Integration](https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio) VS Code extension)
 
-            subgraph HUB["Hub VNet: vnet-dns-lab — 10.0.0.0/16"]
-                subgraph SUB_VM["subnet-vm — 10.0.1.0/24"]
-                    UBUNTU["vm-ubuntu-lab\nUbuntu 22.04 B1s\nDNS Security Policy Test"]
-                end
-                subgraph SUB_RESOLVER["subnet-resolver-inbound — 10.0.2.0/28\n(delegated: Microsoft.Network/dnsResolvers)"]
-                    RESOLVER["DNS Private Resolver\nInbound Endpoint"]
-                end
-                subgraph SUB_PE["subnet-pe — 10.0.3.0/24"]
-                    PE["Private Endpoint\npe-storage-lab\n(Blob)"]
-                end
-            end
+### Architecture Summary
 
-            PEERING{{"VNet Peering\nhub <--> on-prem"}}
-
-            POLICY["DNS Security Policy\ndns-security-policy-lab\n- Domain List: malicious-domains-list\n- Rule: block-malicious-rule (Priority 100, Block)\n- VNet Link to Hub VNet"]
-            PDZ["Private DNS Zone\nprivatelink.blob.core.windows.net\n- Linked to Hub VNet\n- A record auto-registered"]
-            SA["Storage Account\nstpvtlink...\nPublic access: Disabled"]
-            LAW["Log Analytics Workspace\nlaw-dns-security-lab\n- DNS Query Logs\n- Diagnostic Data"]
-
-        end
-    end
-
-    %% Connections
-    CLIENT -- "DNS query" --> DNS_SRV
-    DNS_SRV -- "Conditional forwarder\nblob.core.windows.net" --> RESOLVER
-    RESOLVER -- "Azure DNS" --> PDZ
-    PDZ -- "Private IP" --> PE
-    PE -- "Private link" --> SA
-
-    ONPREM --- PEERING
-    HUB --- PEERING
-
-    POLICY -. "Linked to" .-> HUB
-    LAW -. "Diagnostic logs" .-> POLICY
-
-    %% Resolution flow annotation
-    subgraph FLOW["Private Endpoint Resolution Flow (from on-prem client)"]
-        direction LR
-        F1["Client"] --> F2["Windows DNS\n10.1.1.4"] --> F3["Conditional\nForwarder"] --> F4["Private Resolver\nInbound"] --> F5["Azure DNS"] --> F6["Private DNS\nZone"] --> F7["Private IP\n10.0.3.x"]
-    end
-
-    style AZ fill:#e6f2ff,stroke:#0078d4,stroke-width:2px
-    style RG fill:#f0f0f0,stroke:#666,stroke-width:2px
-    style ONPREM fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style HUB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style ONPREM_SUB fill:#fff8e1,stroke:#f57f17
-    style SUB_VM fill:#e8f5e9,stroke:#388e3c
-    style SUB_RESOLVER fill:#e8f5e9,stroke:#388e3c
-    style SUB_PE fill:#e8f5e9,stroke:#388e3c
-    style FLOW fill:#fce4ec,stroke:#c62828,stroke-width:2px
-    style PEERING fill:#e1bee7,stroke:#6a1b9a
-    style POLICY fill:#e3f2fd,stroke:#1565c0
-    style PDZ fill:#e3f2fd,stroke:#1565c0
-    style SA fill:#e3f2fd,stroke:#1565c0
-    style LAW fill:#e3f2fd,stroke:#1565c0
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Resource Group: rg-dns-security-lab                                         │
+│                                                                             │
+│  On-Prem VNet (10.1.0.0/16)         Hub VNet (10.0.0.0/16)                 │
+│  ┌─────────────────────────┐         ┌────────────────────────────────┐    │
+│  │ vm-dns-server (Win/B2s) │  VNet   │ vm-ubuntu-lab (Ubuntu/B1s)     │    │
+│  │ IP: 10.1.1.4            │◄─Peer─►│ DNS Private Resolver (Inbound) │    │
+│  │ vm-onprem-client (B1s)  │  ing    │ Private Endpoint (Storage)     │    │
+│  └─────────────────────────┘         └────────────────────────────────┘    │
+│                                                                             │
+│  DNS Security Policy    Private DNS Zone           Log Analytics Workspace  │
+│  (linked to Hub VNet)   (privatelink.blob...)      (DNS Query Logs)         │
+│                                                                             │
+│  Resolution Flow:                                                           │
+│  Client → Win DNS → Cond. Forwarder → Resolver → Azure DNS → PE (10.0.3.x)│
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Prerequisites
