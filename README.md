@@ -435,6 +435,8 @@ This checks for:
 AzDnsSecurityPolicyLab/
 ├── README.md                    # This documentation
 ├── FILE_OVERVIEW.md             # Detailed file descriptions
+├── architecture.svg             # Architecture diagram (rendered in README)
+├── architecture.drawio          # Editable diagram source (Draw.io extension)
 ├── answers.json                 # Configuration file (update with your subscription)
 ├── answers.json.template        # Template for configuration
 ├── deploy-lab.sh               # Main deployment script (DNS Policy + Private Resolver + On-Prem)
