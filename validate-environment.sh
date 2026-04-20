@@ -164,6 +164,15 @@ if [[ -f "answers.json" ]]; then
         echo "❌ privateDnsZoneName is required in answers.json"
         EXIT_CODE=1
     fi
+
+    # Validate optional RDP access configuration
+    ALLOWED_PUBLIC_IP=$(jq -r '.allowedPublicIp' answers.json 2>/dev/null)
+    if [[ -n "$ALLOWED_PUBLIC_IP" && "$ALLOWED_PUBLIC_IP" != "null" && "$ALLOWED_PUBLIC_IP" != "YOUR-PUBLIC-IP-HERE" ]]; then
+        echo "✅ allowedPublicIp is configured: $ALLOWED_PUBLIC_IP (RDP access to DNS Server will be enabled)"
+    else
+        echo "ℹ️  allowedPublicIp is not configured — DNS Server will use serial console only"
+        echo "   To enable RDP, set your public IP (find it at https://ifconfig.me)"
+    fi
 fi
 
 # Check script permissions

@@ -54,6 +54,7 @@ PE_SUBNET_PREFIX=$(jq -r '.privateEndpointSubnetPrefix' answers.json)
 PE_NAME=$(jq -r '.privateEndpointName' answers.json)
 PRIVATE_DNS_ZONE_NAME=$(jq -r '.privateDnsZoneName' answers.json)
 PRIVATE_DNS_ZONE_LINK_NAME=$(jq -r '.privateDnsZoneLinkName' answers.json)
+ALLOWED_PUBLIC_IP=$(jq -r '.allowedPublicIp' answers.json)
 
 # Validate required fields
 if [[ -z "$SUBSCRIPTION_ID" || "$SUBSCRIPTION_ID" == "null" || "$SUBSCRIPTION_ID" == "" ]]; then
@@ -460,6 +461,66 @@ az vm create \
     --location "$LOCATION" \
     --tags "Purpose=DNS-Security-Lab" "Role=DNS-Server"
 
+# If an allowed public IP is configured, add a public IP and NSG rule for RDP access
+if [[ -n "$ALLOWED_PUBLIC_IP" && "$ALLOWED_PUBLIC_IP" != "null" && "$ALLOWED_PUBLIC_IP" != "YOUR-PUBLIC-IP-HERE" ]]; then
+    echo ""
+    echo "Creating public IP for DNS Server VM..."
+    az network public-ip create \
+        --resource-group "$RESOURCE_GROUP_NAME" \
+        --name "${DNS_SERVER_VM_NAME}-pip" \
+        --location "$LOCATION" \
+        --sku Standard \
+        --allocation-method Static \
+        --tags "Purpose=DNS-Security-Lab" "Role=DNS-Server"
+
+    # Get the NIC name for the DNS server VM
+    DNS_SERVER_NIC_ID=$(az vm show \
+        --resource-group "$RESOURCE_GROUP_NAME" \
+        --name "$DNS_SERVER_VM_NAME" \
+        --query "networkProfile.networkInterfaces[0].id" -o tsv)
+    DNS_SERVER_NIC_NAME=$(basename "$DNS_SERVER_NIC_ID")
+
+    # Get the IP config name
+    DNS_SERVER_IP_CONFIG=$(az network nic show \
+        --ids "$DNS_SERVER_NIC_ID" \
+        --query "ipConfigurations[0].name" -o tsv)
+
+    # Associate the public IP with the NIC
+    echo "Associating public IP with DNS Server NIC..."
+    az network nic ip-config update \
+        --resource-group "$RESOURCE_GROUP_NAME" \
+        --nic-name "$DNS_SERVER_NIC_NAME" \
+        --name "$DNS_SERVER_IP_CONFIG" \
+        --public-ip-address "${DNS_SERVER_VM_NAME}-pip"
+
+    # Add NSG rule to allow RDP from the user's public IP
+    echo ""
+    echo "Adding NSG rule to allow RDP (3389) from $ALLOWED_PUBLIC_IP..."
+    az network nsg rule create \
+        --resource-group "$RESOURCE_GROUP_NAME" \
+        --nsg-name "$ONPREM_NSG_NAME" \
+        --name "Allow-RDP-From-MyIP" \
+        --priority 100 \
+        --direction Inbound \
+        --access Allow \
+        --protocol Tcp \
+        --source-address-prefixes "$ALLOWED_PUBLIC_IP" \
+        --source-port-ranges "*" \
+        --destination-address-prefixes "$DNS_SERVER_STATIC_IP" \
+        --destination-port-ranges 3389
+
+    DNS_SERVER_PUBLIC_IP=$(az network public-ip show \
+        --resource-group "$RESOURCE_GROUP_NAME" \
+        --name "${DNS_SERVER_VM_NAME}-pip" \
+        --query ipAddress -o tsv)
+    echo "DNS Server public IP: $DNS_SERVER_PUBLIC_IP"
+    echo "RDP access allowed from: $ALLOWED_PUBLIC_IP"
+else
+    echo ""
+    echo "No allowedPublicIp configured in answers.json — DNS Server will be serial console only."
+    echo "To enable RDP access, set 'allowedPublicIp' to your public IP and redeploy."
+fi
+
 # Enable managed boot diagnostics for Windows DNS Server
 echo ""
 echo "Enabling managed boot diagnostics for VM: $DNS_SERVER_VM_NAME"
@@ -640,13 +701,21 @@ echo ""
 echo "--- On-Prem Environment (Simulated) ---"
 echo "On-Prem VNet: $ONPREM_VNET_NAME ($ONPREM_VNET_ADDRESS_SPACE)"
 echo "Windows DNS Server: $DNS_SERVER_VM_NAME (IP: $DNS_SERVER_STATIC_IP)"
+if [[ -n "$DNS_SERVER_PUBLIC_IP" ]]; then
+    echo "  - Public IP: $DNS_SERVER_PUBLIC_IP (RDP allowed from $ALLOWED_PUBLIC_IP)"
+fi
 echo "  - Conditional forwarder: blob.core.windows.net -> $RESOLVER_INBOUND_IP"
 echo "On-Prem Client: $ONPREM_CLIENT_VM_NAME (DNS: $DNS_SERVER_STATIC_IP)"
 echo "VNet Peering: hub <-> on-prem (Connected)"
 echo ""
 echo "VM Access Instructions:"
 echo "----------------------"
-echo "All VMs are accessed via Azure Portal Serial Console."
+if [[ -n "$DNS_SERVER_PUBLIC_IP" ]]; then
+    echo "Windows DNS Server: RDP to $DNS_SERVER_PUBLIC_IP (username: $VM_ADMIN_USERNAME)"
+    echo "All other VMs: Azure Portal Serial Console"
+else
+    echo "All VMs are accessed via Azure Portal Serial Console."
+fi
 echo "1. Go to the Azure Portal: https://portal.azure.com"
 echo "2. Navigate to Virtual Machines"
 echo "3. Select the VM in resource group '$RESOURCE_GROUP_NAME'"

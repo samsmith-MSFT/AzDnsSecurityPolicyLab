@@ -53,6 +53,25 @@ Edit the `answers.json` file and add your Azure subscription ID:
 }
 ```
 
+### 2a. (Optional) Enable RDP Access to Windows DNS Server
+
+By default, the Windows DNS Server has no public IP and is only accessible via serial console. To enable direct RDP access, add your public IP address to `answers.json`:
+
+```json
+{
+  "allowedPublicIp": "203.0.113.50"
+}
+```
+
+You can find your public IP by visiting [https://ifconfig.me](https://ifconfig.me) or running `curl ifconfig.me` in a terminal.
+
+This will:
+- Create a public IP address and attach it to the DNS Server VM
+- Add an NSG rule allowing inbound RDP (port 3389) **only from your specified IP**
+- All other inbound traffic remains blocked
+
+If `allowedPublicIp` is left as the default (`YOUR-PUBLIC-IP-HERE`) or omitted, the DNS Server will remain serial console-only.
+
 ### 3. Deploy the Lab
 
 Run the deployment script:
@@ -118,6 +137,8 @@ nslookup <storage-account-name>.blob.core.windows.net
 ```
 
 **(Optional) Verify Windows DNS Server configuration:**
+
+If you configured `allowedPublicIp` in `answers.json`, you can RDP directly to the DNS Server using its public IP (shown in deployment output). Otherwise, use serial console:
 
 1. Navigate to Virtual Machines → `vm-dns-server`
 2. Click "Serial console"

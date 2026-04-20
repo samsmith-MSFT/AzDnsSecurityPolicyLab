@@ -33,5 +33,6 @@
   "privateEndpointSubnetPrefix": "10.0.3.0/24",
   "privateEndpointName": "pe-storage-lab",
   "privateDnsZoneName": "privatelink.blob.core.windows.net",
-  "privateDnsZoneLinkName": "pdz-link-hub"
+  "privateDnsZoneLinkName": "pdz-link-hub",
+  "allowedPublicIp": "REPLACE-WITH-YOUR-PUBLIC-IP"
 }
