@@ -61,6 +61,7 @@ RESOLVER_OUTBOUND_ENDPOINT_NAME=$(jq -r '.resolverOutboundEndpointName' answers.
 FORWARDING_RULESET_NAME=$(jq -r '.forwardingRulesetName' answers.json)
 FORWARDING_RULE_NAME=$(jq -r '.forwardingRuleName' answers.json)
 ONPREM_DNS_DOMAIN=$(jq -r '.onpremDnsDomain' answers.json)
+ONPREM_DNS_RECORD_NAME=$(jq -r '.onpremDnsRecordName' answers.json)
 
 # Validate required fields
 if [[ -z "$SUBSCRIPTION_ID" || "$SUBSCRIPTION_ID" == "null" || "$SUBSCRIPTION_ID" == "" ]]; then
@@ -438,7 +439,7 @@ az dns-resolver vnet-link create \
     --name "vnet-link-hub-forwarding" \
     --id "$VNET_ID"
 
-# Create forwarding rule for on-prem domain (contoso.com -> Windows DNS Server)
+# Create forwarding rule for on-prem domain -> Windows DNS Server
 echo ""
 echo "Creating forwarding rule: $FORWARDING_RULE_NAME ($ONPREM_DNS_DOMAIN -> $DNS_SERVER_STATIC_IP)"
 az dns-resolver forwarding-rule create \
@@ -616,11 +617,11 @@ az vm run-command invoke \
         # Add conditional forwarder for blob.core.windows.net -> Private Resolver inbound IP
         Add-DnsServerConditionalForwarderZone -Name 'blob.core.windows.net' -MasterServers $RESOLVER_INBOUND_IP -PassThru
 
-        # Create forward lookup zone for on-prem domain (contoso.com)
+        # Create forward lookup zone for on-prem domain
         Add-DnsServerPrimaryZone -Name '$ONPREM_DNS_DOMAIN' -ReplicationScope None -ZoneFile '${ONPREM_DNS_DOMAIN}.dns' -PassThru
 
-        # Add A record for the DNS server itself in contoso.com
-        Add-DnsServerResourceRecordA -ZoneName '$ONPREM_DNS_DOMAIN' -Name 'dns' -IPv4Address '$DNS_SERVER_STATIC_IP' -PassThru
+        # Add A record for the DNS server itself
+        Add-DnsServerResourceRecordA -ZoneName '$ONPREM_DNS_DOMAIN' -Name '$ONPREM_DNS_RECORD_NAME' -IPv4Address '$DNS_SERVER_STATIC_IP' -PassThru
 
         # Verify installation
         Get-WindowsFeature DNS
@@ -789,7 +790,7 @@ if [[ -n "$DNS_SERVER_PUBLIC_IP" ]]; then
     echo "  - Public IP: $DNS_SERVER_PUBLIC_IP (RDP allowed from $ALLOWED_PUBLIC_IP)"
 fi
 echo "  - Conditional forwarder: blob.core.windows.net -> $RESOLVER_INBOUND_IP"
-echo "  - DNS Zone: $ONPREM_DNS_DOMAIN (dns.$ONPREM_DNS_DOMAIN -> $DNS_SERVER_STATIC_IP)"
+echo "  - DNS Zone: $ONPREM_DNS_DOMAIN ($ONPREM_DNS_RECORD_NAME.$ONPREM_DNS_DOMAIN -> $DNS_SERVER_STATIC_IP)"
 echo "On-Prem Client: $ONPREM_CLIENT_VM_NAME (DNS: $DNS_SERVER_STATIC_IP)"
 echo "VNet Peering: hub <-> on-prem (Connected)"
 echo ""
@@ -821,7 +822,7 @@ echo "  # Should return private IP: $PE_PRIVATE_IP"
 echo "  # Resolution path: Client -> Windows DNS -> Private Resolver -> Private DNS Zone"
 echo ""
 echo "--- Test Outbound Endpoint Resolution (from $VM_NAME) ---"
-echo "dig dns.${ONPREM_DNS_DOMAIN}"
+echo "dig ${ONPREM_DNS_RECORD_NAME}.${ONPREM_DNS_DOMAIN}"
 echo "  # Should return: $DNS_SERVER_STATIC_IP"
 echo "  # Resolution path: Ubuntu VM -> Azure DNS -> Outbound Endpoint -> Windows DNS Server"
 echo ""

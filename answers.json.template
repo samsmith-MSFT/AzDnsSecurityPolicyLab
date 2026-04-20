@@ -1,7 +1,10 @@
 {
   "subscriptionId": "REPLACE-WITH-YOUR-AZURE-SUBSCRIPTION-ID",
-  "resourceGroupName": "rg-dns-security-lab",
+  "allowedPublicIp": "REPLACE-WITH-YOUR-PUBLIC-IP",
+  "onpremDnsDomain": "contoso.com",
+  "onpremDnsRecordName": "dns",
   "location": "eastus2",
+  "resourceGroupName": "rg-dns-security-lab",
   "vnetName": "vnet-dns-lab",
   "vnetAddressSpace": "10.0.0.0/16",
   "subnetName": "subnet-vm",
@@ -34,11 +37,9 @@
   "privateEndpointName": "pe-storage-lab",
   "privateDnsZoneName": "privatelink.blob.core.windows.net",
   "privateDnsZoneLinkName": "pdz-link-hub",
-  "allowedPublicIp": "REPLACE-WITH-YOUR-PUBLIC-IP",
   "resolverOutboundSubnetName": "subnet-resolver-outbound",
   "resolverOutboundSubnetPrefix": "10.0.4.0/28",
   "resolverOutboundEndpointName": "outbound-endpoint",
   "forwardingRulesetName": "frs-onprem-lab",
-  "forwardingRuleName": "fwd-contoso-com",
-  "onpremDnsDomain": "contoso.com"
+  "forwardingRuleName": "fwd-onprem-domain"
 }

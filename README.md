@@ -26,9 +26,9 @@ This lab creates a complete Azure environment with three demos:
 
 ### Demo 3: Private Resolver Outbound — Resolve On-Prem DNS from Azure
 - **Outbound endpoint** on the Private Resolver for forwarding DNS queries to on-prem
-- **DNS forwarding ruleset** linked to the hub VNet with a rule for `contoso.com`
-- **Forward lookup zone** (`contoso.com`) on the Windows DNS Server with an A record (`dns.contoso.com`)
-- **Test from Azure Ubuntu VM** — queries for `dns.contoso.com` are forwarded via the outbound endpoint to the on-prem Windows DNS Server
+- **DNS forwarding ruleset** linked to the hub VNet with a rule for the on-prem domain (configurable via `onpremDnsDomain` in `answers.json`, default: `contoso.com`)
+- **Forward lookup zone** on the Windows DNS Server with a configurable A record (default: `dns.contoso.com`)
+- **Test from Azure Ubuntu VM** — queries for the on-prem domain are forwarded via the outbound endpoint to the on-prem Windows DNS Server
 
 ## Architecture
 
@@ -51,12 +51,21 @@ Click the "Code" button and select "Open with Codespaces" to launch the lab envi
 
 ### 2. Configure Your Subscription
 
-Edit the `answers.json` file and add your Azure subscription ID:
+Edit the `answers.json` file. The user-required fields are at the top:
 
 ```json
 {
-  "subscriptionId": "YOUR-SUBSCRIPTION-ID-HERE"
+  "subscriptionId": "YOUR-SUBSCRIPTION-ID-HERE",
+  "allowedPublicIp": "YOUR-PUBLIC-IP-HERE",
+  "onpremDnsDomain": "contoso.com",
+  "onpremDnsRecordName": "dns"
 }
+```
+
+- **`subscriptionId`** (required): Your Azure subscription ID
+- **`allowedPublicIp`** (optional): Your public IP for RDP access to the DNS Server (see step 2a)
+- **`onpremDnsDomain`** (optional): The on-prem domain for the outbound endpoint demo (default: `contoso.com`)
+- **`onpremDnsRecordName`** (optional): The DNS A record name created in the on-prem zone (default: `dns`)
 ```
 
 ### 2a. (Optional) Enable RDP Access to Windows DNS Server
@@ -156,10 +165,10 @@ If you configured `allowedPublicIp` in `answers.json`, you can RDP directly to t
 powershell -Command "Get-DnsServerZone | Where-Object ZoneType -eq 'Forwarder'"
 # Should show blob.core.windows.net forwarding to the resolver inbound IP
 
-# Check contoso.com zone and A record
-powershell -Command "Get-DnsServerZone -Name 'contoso.com'"
-powershell -Command "Get-DnsServerResourceRecord -ZoneName 'contoso.com'"
-# Should show an A record: dns -> 10.1.1.4
+# Check on-prem DNS zone and A record
+powershell -Command "Get-DnsServerZone -Name '<onpremDnsDomain>'"
+powershell -Command "Get-DnsServerResourceRecord -ZoneName '<onpremDnsDomain>'"
+# Should show an A record: <onpremDnsRecordName> -> 10.1.1.4
 
 # Check DNS server forwarders
 powershell -Command "Get-DnsServerForwarder"
@@ -167,13 +176,14 @@ powershell -Command "Get-DnsServerForwarder"
 
 ### 6. Test Outbound Endpoint — Resolve On-Prem DNS from Azure (Demo 3)
 
-This tests the reverse direction: Azure VMs resolving on-prem DNS zones via the Private Resolver outbound endpoint and DNS forwarding ruleset.
+This tests the reverse direction: Azure VMs resolving on-prem DNS zones via the Private Resolver outbound endpoint and DNS forwarding ruleset. The domain and record name are configurable in `answers.json` via `onpremDnsDomain` and `onpremDnsRecordName` (defaults shown below).
 
 1. In the Azure Portal, navigate to Virtual Machines → `vm-ubuntu-lab`
 2. Click "Serial console" and login
 
 ```bash
-# Resolve the on-prem DNS server record via outbound endpoint
+# Resolve the on-prem DNS record via outbound endpoint
+# Replace dns.contoso.com with your configured <onpremDnsRecordName>.<onpremDnsDomain>
 dig dns.contoso.com
 # Should return: 10.1.1.4
 # Resolution path: Ubuntu VM -> Azure DNS -> Forwarding Ruleset -> Outbound Endpoint -> Windows DNS Server
@@ -400,9 +410,9 @@ The lab creates a DNS security policy with the following configuration:
 - **Inbound Endpoint**: In `subnet-resolver-inbound` (10.0.2.0/28), dynamically assigned IP
 - **Outbound Endpoint**: In `subnet-resolver-outbound` (10.0.4.0/28)
 - **DNS Forwarding Ruleset**: `frs-onprem-lab` linked to hub VNet
-  - **Forwarding Rule**: `contoso.com` → Windows DNS Server (10.1.1.4:53)
+  - **Forwarding Rule**: `<onpremDnsDomain>` → Windows DNS Server (10.1.1.4:53)
 - **Windows DNS Server**: Conditional forwarder for `blob.core.windows.net` → Resolver inbound IP
-- **Windows DNS Server**: Forward lookup zone `contoso.com` with A record `dns` → 10.1.1.4
+- **Windows DNS Server**: Forward lookup zone `<onpremDnsDomain>` with A record `<onpremDnsRecordName>` → 10.1.1.4
 - **Private Endpoint**: `pe-storage-lab` targeting storage account blob sub-resource
 - **Private DNS Zone**: `privatelink.blob.core.windows.net` linked to hub VNet
 - **DNS Zone Group**: Auto-registers storage account A record in Private DNS Zone
@@ -458,10 +468,10 @@ dig google.com +short
 ### Scenario 3: Outbound Endpoint — Resolve On-Prem DNS from Azure
 
 1. Access `vm-ubuntu-lab` via serial console
-2. Run `dig dns.contoso.com`
+2. Run `dig <onpremDnsRecordName>.<onpremDnsDomain>` (default: `dig dns.contoso.com`)
 3. Verify it returns 10.1.1.4 (the Windows DNS Server IP)
-4. The resolution path is: Ubuntu VM → Azure DNS → Forwarding Ruleset → Outbound Endpoint → Windows DNS Server → contoso.com zone
-5. (Optional) Verify the zone on the DNS server: `powershell -Command "Get-DnsServerResourceRecord -ZoneName 'contoso.com'"`
+4. The resolution path is: Ubuntu VM → Azure DNS → Forwarding Ruleset → Outbound Endpoint → Windows DNS Server → on-prem zone
+5. (Optional) Verify the zone on the DNS server: `powershell -Command "Get-DnsServerResourceRecord -ZoneName '<onpremDnsDomain>'"`
 
 ### Scenario 4: DNS Policy Modification
 
@@ -579,11 +589,11 @@ AzDnsSecurityPolicyLab/
 - Ensure the subnet prefix is /28 or larger
 - Azure DNS Private Resolver may not be available in all regions (eastus2 is supported)
 
-**"dig dns.contoso.com returns NXDOMAIN (outbound endpoint test)"**
+**"dig <record>.<domain> returns NXDOMAIN (outbound endpoint test)"**
 - Verify the forwarding ruleset is linked to the hub VNet: Check `frs-onprem-lab` VNet links in Azure Portal
-- Verify the forwarding rule domain is `contoso.com.` (with trailing dot)
-- Verify the Windows DNS Server has the `contoso.com` zone: `powershell -Command "Get-DnsServerZone -Name 'contoso.com'"`
-- Verify the A record exists: `powershell -Command "Get-DnsServerResourceRecord -ZoneName 'contoso.com'"`
+- Verify the forwarding rule domain matches your `onpremDnsDomain` value (with trailing dot)
+- Verify the Windows DNS Server has the zone: `powershell -Command "Get-DnsServerZone -Name '<onpremDnsDomain>'"`
+- Verify the A record exists: `powershell -Command "Get-DnsServerResourceRecord -ZoneName '<onpremDnsDomain>'"`
 - Ensure VNet peering is connected and allows forwarded traffic
 
 **"dig command not found"**

@@ -173,6 +173,36 @@ if [[ -f "answers.json" ]]; then
         echo "ℹ️  allowedPublicIp is not configured — DNS Server will use serial console only"
         echo "   To enable RDP, set your public IP (find it at https://ifconfig.me)"
     fi
+
+    # Validate Outbound Endpoint configuration
+    echo ""
+    echo "Validating Outbound Endpoint Configuration:"
+    echo "--------------------------------------------"
+
+    ONPREM_DNS_DOMAIN=$(jq -r '.onpremDnsDomain' answers.json 2>/dev/null)
+    ONPREM_DNS_RECORD_NAME=$(jq -r '.onpremDnsRecordName' answers.json 2>/dev/null)
+    FORWARDING_RULESET_NAME=$(jq -r '.forwardingRulesetName' answers.json 2>/dev/null)
+
+    if [[ -n "$ONPREM_DNS_DOMAIN" && "$ONPREM_DNS_DOMAIN" != "null" ]]; then
+        echo "✅ onpremDnsDomain is configured: $ONPREM_DNS_DOMAIN"
+    else
+        echo "❌ onpremDnsDomain is required in answers.json"
+        EXIT_CODE=1
+    fi
+
+    if [[ -n "$ONPREM_DNS_RECORD_NAME" && "$ONPREM_DNS_RECORD_NAME" != "null" ]]; then
+        echo "✅ onpremDnsRecordName is configured: $ONPREM_DNS_RECORD_NAME"
+    else
+        echo "❌ onpremDnsRecordName is required in answers.json"
+        EXIT_CODE=1
+    fi
+
+    if [[ -n "$FORWARDING_RULESET_NAME" && "$FORWARDING_RULESET_NAME" != "null" ]]; then
+        echo "✅ forwardingRulesetName is configured: $FORWARDING_RULESET_NAME"
+    else
+        echo "❌ forwardingRulesetName is required in answers.json"
+        EXIT_CODE=1
+    fi
 fi
 
 # Check script permissions
@@ -223,6 +253,9 @@ if [[ $EXIT_CODE -eq 0 ]]; then
     echo ""
     echo "Demo 2 - Private Resolver:"
     echo "  From vm-onprem-client: nslookup <storage>.blob.core.windows.net (should return private IP)"
+    echo ""
+    echo "Demo 3 - Outbound Endpoint:"
+    echo "  From vm-ubuntu-lab: dig ${ONPREM_DNS_RECORD_NAME}.${ONPREM_DNS_DOMAIN} (should return 10.1.1.4)"
     echo ""
     echo "3. Clean up with './remove-lab.sh' when done"
 else
