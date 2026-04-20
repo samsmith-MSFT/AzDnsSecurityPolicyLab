@@ -25,6 +25,8 @@ ONPREM_CLIENT_VM_NAME=$(jq -r '.onpremClientVmName' answers.json)
 RESOLVER_NAME=$(jq -r '.resolverName' answers.json)
 PE_NAME=$(jq -r '.privateEndpointName' answers.json)
 PRIVATE_DNS_ZONE_NAME=$(jq -r '.privateDnsZoneName' answers.json)
+ONPREM_DNS_DOMAIN=$(jq -r '.onpremDnsDomain' answers.json)
+FORWARDING_RULESET_NAME=$(jq -r '.forwardingRulesetName' answers.json)
 
 echo "Lab Configuration:"
 echo "----------------"
@@ -160,6 +162,57 @@ echo ""
 echo "Check DNS server forwarders:"
 echo "powershell -Command \"Get-DnsServerForwarder\""
 echo ""
+echo "Check contoso.com zone and records:"
+echo "powershell -Command \"Get-DnsServerZone -Name '$ONPREM_DNS_DOMAIN'\""
+echo "powershell -Command \"Get-DnsServerResourceRecord -ZoneName '$ONPREM_DNS_DOMAIN'\""
+echo ""
+
+echo "============================================================"
+echo "DEMO 3: Outbound Endpoint - Resolve On-Prem DNS from Azure"
+echo "============================================================"
+echo ""
+echo "This demo tests the OUTBOUND direction: Azure VMs resolving"
+echo "on-prem DNS zones via the Private Resolver outbound endpoint."
+echo ""
+echo "Resolution path:"
+echo "  Ubuntu VM ($VM_NAME) -> Azure DNS -> Outbound Endpoint -> Windows DNS Server ($DNS_SERVER_STATIC_IP)"
+echo "  -> contoso.com zone -> A record"
+echo ""
+echo "🔗 Step 8: Access the Azure Ubuntu VM via Serial Console"
+echo "--------------------------------------------------------"
+echo "1. In the Azure Portal, navigate to Virtual Machines"
+echo "2. Find and click on VM: $VM_NAME"
+echo "3. Click 'Serial console' under 'Help'"
+echo "4. Login with:"
+echo "   Username: $VM_ADMIN_USERNAME"
+echo "   Password: [The password you provided during deployment]"
+echo ""
+
+echo "🧪 Step 9: Test Outbound Endpoint Resolution (from Azure VM)"
+echo "------------------------------------------------------------"
+echo ""
+echo "Run these commands from $VM_NAME:"
+echo ""
+echo "# Resolve the DNS server record in the on-prem contoso.com zone"
+echo "dig dns.${ONPREM_DNS_DOMAIN}"
+echo "  # Should return: $DNS_SERVER_STATIC_IP"
+echo ""
+echo "# Verify the resolution path"
+echo "dig dns.${ONPREM_DNS_DOMAIN} +trace"
+echo "  # Azure DNS -> Forwarding Ruleset -> Outbound Endpoint -> Windows DNS"
+echo ""
+echo "# nslookup alternative"
+echo "nslookup dns.${ONPREM_DNS_DOMAIN}"
+echo "  # Should show $DNS_SERVER_STATIC_IP"
+echo ""
+
+echo "🔍 Step 10: Verify Outbound Endpoint Chain"
+echo "-------------------------------------------"
+echo "✅ If dig returns $DNS_SERVER_STATIC_IP: Outbound endpoint works!"
+echo "   Azure VM -> Azure DNS -> Forwarding Ruleset -> Outbound Endpoint -> Windows DNS -> contoso.com"
+echo "❌ If dig returns NXDOMAIN: Forwarding ruleset may not be linked to the VNet"
+echo "❌ If dig times out: Check VNet peering and NSG rules allow DNS (UDP 53)"
+echo ""
 
 # Check if we can get additional info about the deployment
 echo "🔧 Lab Status Check"
@@ -223,6 +276,13 @@ if az account show &> /dev/null; then
             echo "✅ Private DNS Zone '$PRIVATE_DNS_ZONE_NAME' exists"
         else
             echo "❌ Private DNS Zone '$PRIVATE_DNS_ZONE_NAME' not found"
+        fi
+
+        # Check if Forwarding Ruleset exists
+        if az dns-resolver forwarding-ruleset show --resource-group "$RESOURCE_GROUP_NAME" --name "$FORWARDING_RULESET_NAME" &> /dev/null 2>&1; then
+            echo "✅ Forwarding Ruleset '$FORWARDING_RULESET_NAME' exists"
+        else
+            echo "❌ Forwarding Ruleset '$FORWARDING_RULESET_NAME' not found"
         fi
     else
         echo "❌ Resource group '$RESOURCE_GROUP_NAME' not found"

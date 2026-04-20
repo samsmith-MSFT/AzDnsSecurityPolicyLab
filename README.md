@@ -4,7 +4,7 @@ A complete lab environment for testing and learning Azure DNS Security Policies 
 
 ## Lab Overview
 
-This lab creates a complete Azure environment with two demos:
+This lab creates a complete Azure environment with three demos:
 
 ### Demo 1: DNS Security Policy
 - **Virtual Network** with an Ubuntu 22.04 LTS virtual machine (no public IP - serial console access)
@@ -15,7 +15,7 @@ This lab creates a complete Azure environment with two demos:
 - **Log Analytics Workspace** for DNS query monitoring and diagnostics
 - **Diagnostic Settings** configured to capture all DNS security events
 
-### Demo 2: Private Resolver & On-Premises DNS Forwarding
+### Demo 2: Private Resolver Inbound & On-Premises DNS Forwarding
 - **Azure DNS Private Resolver** with inbound endpoint in the hub VNet
 - **Simulated on-premises environment** with a separate VNet (peered to hub)
 - **Windows Server 2022** with DNS Server role and conditional forwarder to the Private Resolver
@@ -23,6 +23,12 @@ This lab creates a complete Azure environment with two demos:
 - **Storage account** with public access disabled and a private endpoint
 - **Private DNS Zone** (`privatelink.blob.core.windows.net`) linked to the hub VNet
 - **VNet peering** connecting the on-prem and hub networks
+
+### Demo 3: Private Resolver Outbound — Resolve On-Prem DNS from Azure
+- **Outbound endpoint** on the Private Resolver for forwarding DNS queries to on-prem
+- **DNS forwarding ruleset** linked to the hub VNet with a rule for `contoso.com`
+- **Forward lookup zone** (`contoso.com`) on the Windows DNS Server with an A record (`dns.contoso.com`)
+- **Test from Azure Ubuntu VM** — queries for `dns.contoso.com` are forwarded via the outbound endpoint to the on-prem Windows DNS Server
 
 ## Architecture
 
@@ -150,18 +156,43 @@ If you configured `allowedPublicIp` in `answers.json`, you can RDP directly to t
 powershell -Command "Get-DnsServerZone | Where-Object ZoneType -eq 'Forwarder'"
 # Should show blob.core.windows.net forwarding to the resolver inbound IP
 
+# Check contoso.com zone and A record
+powershell -Command "Get-DnsServerZone -Name 'contoso.com'"
+powershell -Command "Get-DnsServerResourceRecord -ZoneName 'contoso.com'"
+# Should show an A record: dns -> 10.1.1.4
+
 # Check DNS server forwarders
 powershell -Command "Get-DnsServerForwarder"
 ```
 
-### 6. Monitor DNS Activity
+### 6. Test Outbound Endpoint — Resolve On-Prem DNS from Azure (Demo 3)
+
+This tests the reverse direction: Azure VMs resolving on-prem DNS zones via the Private Resolver outbound endpoint and DNS forwarding ruleset.
+
+1. In the Azure Portal, navigate to Virtual Machines → `vm-ubuntu-lab`
+2. Click "Serial console" and login
+
+```bash
+# Resolve the on-prem DNS server record via outbound endpoint
+dig dns.contoso.com
+# Should return: 10.1.1.4
+# Resolution path: Ubuntu VM -> Azure DNS -> Forwarding Ruleset -> Outbound Endpoint -> Windows DNS Server
+
+# nslookup alternative
+nslookup dns.contoso.com
+# Should show: 10.1.1.4
+```
+
+If the query returns `NXDOMAIN`, the forwarding ruleset may not be linked to the hub VNet. If it times out, check VNet peering and ensure DNS traffic (UDP 53) is not blocked by NSG rules.
+
+### 7. Monitor DNS Activity
 
 View DNS logs in Log Analytics:
 1. Go to your resource group in Azure Portal
 2. Open the Log Analytics workspace (`law-dns-security-lab`)
 3. Click "Logs" and run KQL queries
 
-### 7. Clean Up
+### 8. Clean Up
 
 When finished:
 ```bash
@@ -351,22 +382,27 @@ The lab creates a DNS security policy with the following configuration:
 
 - **Hub Virtual Network**: `vnet-dns-lab` (10.0.0.0/16)
   - **Subnet (VM)**: `subnet-vm` (10.0.1.0/24) — Ubuntu VM
-  - **Subnet (Resolver)**: `subnet-resolver-inbound` (10.0.2.0/28) — Private Resolver inbound endpoint
+  - **Subnet (Resolver Inbound)**: `subnet-resolver-inbound` (10.0.2.0/28) — Private Resolver inbound endpoint
   - **Subnet (PE)**: `subnet-pe` (10.0.3.0/24) — Private endpoint for storage
+  - **Subnet (Resolver Outbound)**: `subnet-resolver-outbound` (10.0.4.0/28) — Private Resolver outbound endpoint
 - **On-Prem Virtual Network**: `vnet-onprem-lab` (10.1.0.0/16)
   - **Subnet**: `subnet-onprem` (10.1.1.0/24) — Windows DNS Server + Ubuntu client
 - **VNet Peering**: hub ↔ on-prem (bidirectional, forwarded traffic allowed)
 - **VMs**:
-  - `vm-ubuntu-lab` — Ubuntu 22.04 LTS, Standard_B1s (DNS Security Policy test)
+  - `vm-ubuntu-lab` — Ubuntu 22.04 LTS, Standard_B1s (DNS Security Policy + outbound endpoint test)
   - `vm-dns-server` — Windows Server 2022, Standard_B2s, IP: 10.1.1.4 (DNS Server role)
   - `vm-onprem-client` — Ubuntu 22.04 LTS, Standard_B1s (on-prem client)
-- **Access**: Serial console only (no public IPs)
+- **Access**: Serial console only (no public IPs), or RDP to DNS Server if `allowedPublicIp` is configured
 
 ### Private Resolver Configuration
 
 - **DNS Private Resolver**: `dns-resolver-lab` in hub VNet
 - **Inbound Endpoint**: In `subnet-resolver-inbound` (10.0.2.0/28), dynamically assigned IP
+- **Outbound Endpoint**: In `subnet-resolver-outbound` (10.0.4.0/28)
+- **DNS Forwarding Ruleset**: `frs-onprem-lab` linked to hub VNet
+  - **Forwarding Rule**: `contoso.com` → Windows DNS Server (10.1.1.4:53)
 - **Windows DNS Server**: Conditional forwarder for `blob.core.windows.net` → Resolver inbound IP
+- **Windows DNS Server**: Forward lookup zone `contoso.com` with A record `dns` → 10.1.1.4
 - **Private Endpoint**: `pe-storage-lab` targeting storage account blob sub-resource
 - **Private DNS Zone**: `privatelink.blob.core.windows.net` linked to hub VNet
 - **DNS Zone Group**: Auto-registers storage account A record in Private DNS Zone
@@ -419,14 +455,22 @@ dig google.com +short
 5. (Optional) Access `vm-dns-server` via serial console (SAC: `cmd` → `ch -si 1`)
 6. Verify conditional forwarder: `powershell -Command "Get-DnsServerZone | Where-Object ZoneType -eq 'Forwarder'"`
 
-### Scenario 3: DNS Policy Modification
+### Scenario 3: Outbound Endpoint — Resolve On-Prem DNS from Azure
+
+1. Access `vm-ubuntu-lab` via serial console
+2. Run `dig dns.contoso.com`
+3. Verify it returns 10.1.1.4 (the Windows DNS Server IP)
+4. The resolution path is: Ubuntu VM → Azure DNS → Forwarding Ruleset → Outbound Endpoint → Windows DNS Server → contoso.com zone
+5. (Optional) Verify the zone on the DNS server: `powershell -Command "Get-DnsServerResourceRecord -ZoneName 'contoso.com'"`
+
+### Scenario 4: DNS Policy Modification
 
 1. Add new domains to the block list
 2. Create additional security rules
 3. Test different response codes
 4. Modify rule priorities
 
-### Scenario 4: Monitoring and Analysis
+### Scenario 5: Monitoring and Analysis
 
 1. **Log Analytics Integration**: The lab automatically configures diagnostic settings to send DNS query logs to Log Analytics
 2. **Monitor DNS Queries**: View all DNS queries and blocked attempts in the Log Analytics workspace
@@ -534,6 +578,13 @@ AzDnsSecurityPolicyLab/
 - Ensure the subnet `subnet-resolver-inbound` has delegation to `Microsoft.Network/dnsResolvers`
 - Ensure the subnet prefix is /28 or larger
 - Azure DNS Private Resolver may not be available in all regions (eastus2 is supported)
+
+**"dig dns.contoso.com returns NXDOMAIN (outbound endpoint test)"**
+- Verify the forwarding ruleset is linked to the hub VNet: Check `frs-onprem-lab` VNet links in Azure Portal
+- Verify the forwarding rule domain is `contoso.com.` (with trailing dot)
+- Verify the Windows DNS Server has the `contoso.com` zone: `powershell -Command "Get-DnsServerZone -Name 'contoso.com'"`
+- Verify the A record exists: `powershell -Command "Get-DnsServerResourceRecord -ZoneName 'contoso.com'"`
+- Ensure VNet peering is connected and allows forwarded traffic
 
 **"dig command not found"**
 - Install dig if needed: `sudo apt update && sudo apt install dnsutils`

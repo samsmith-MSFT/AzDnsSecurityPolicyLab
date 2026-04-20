@@ -34,5 +34,11 @@
   "privateEndpointName": "pe-storage-lab",
   "privateDnsZoneName": "privatelink.blob.core.windows.net",
   "privateDnsZoneLinkName": "pdz-link-hub",
-  "allowedPublicIp": "YOUR-PUBLIC-IP-HERE"
+  "allowedPublicIp": "YOUR-PUBLIC-IP-HERE",
+  "resolverOutboundSubnetName": "subnet-resolver-outbound",
+  "resolverOutboundSubnetPrefix": "10.0.4.0/28",
+  "resolverOutboundEndpointName": "outbound-endpoint",
+  "forwardingRulesetName": "frs-onprem-lab",
+  "forwardingRuleName": "fwd-contoso-com",
+  "onpremDnsDomain": "contoso.com"
 }

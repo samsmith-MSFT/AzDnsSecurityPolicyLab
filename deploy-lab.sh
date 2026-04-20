@@ -55,6 +55,12 @@ PE_NAME=$(jq -r '.privateEndpointName' answers.json)
 PRIVATE_DNS_ZONE_NAME=$(jq -r '.privateDnsZoneName' answers.json)
 PRIVATE_DNS_ZONE_LINK_NAME=$(jq -r '.privateDnsZoneLinkName' answers.json)
 ALLOWED_PUBLIC_IP=$(jq -r '.allowedPublicIp' answers.json)
+RESOLVER_OUTBOUND_SUBNET_NAME=$(jq -r '.resolverOutboundSubnetName' answers.json)
+RESOLVER_OUTBOUND_SUBNET_PREFIX=$(jq -r '.resolverOutboundSubnetPrefix' answers.json)
+RESOLVER_OUTBOUND_ENDPOINT_NAME=$(jq -r '.resolverOutboundEndpointName' answers.json)
+FORWARDING_RULESET_NAME=$(jq -r '.forwardingRulesetName' answers.json)
+FORWARDING_RULE_NAME=$(jq -r '.forwardingRuleName' answers.json)
+ONPREM_DNS_DOMAIN=$(jq -r '.onpremDnsDomain' answers.json)
 
 # Validate required fields
 if [[ -z "$SUBSCRIPTION_ID" || "$SUBSCRIPTION_ID" == "null" || "$SUBSCRIPTION_ID" == "" ]]; then
@@ -324,6 +330,16 @@ az network vnet subnet create \
     --address-prefix "$RESOLVER_INBOUND_SUBNET_PREFIX" \
     --delegations "Microsoft.Network/dnsResolvers"
 
+# Add resolver outbound subnet to hub VNet (delegated to Microsoft.Network/dnsResolvers)
+echo ""
+echo "Creating resolver outbound subnet: $RESOLVER_OUTBOUND_SUBNET_NAME"
+az network vnet subnet create \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --vnet-name "$VNET_NAME" \
+    --name "$RESOLVER_OUTBOUND_SUBNET_NAME" \
+    --address-prefix "$RESOLVER_OUTBOUND_SUBNET_PREFIX" \
+    --delegations "Microsoft.Network/dnsResolvers"
+
 # Add private endpoint subnet to hub VNet
 echo ""
 echo "Creating private endpoint subnet: $PE_SUBNET_NAME"
@@ -376,6 +392,64 @@ RESOLVER_INBOUND_IP=$(az dns-resolver inbound-endpoint show \
     --query "ipConfigurations[0].privateIpAddress" -o tsv)
 
 echo "Private Resolver inbound endpoint IP: $RESOLVER_INBOUND_IP"
+
+# Get resolver outbound subnet ID
+RESOLVER_OUTBOUND_SUBNET_ID=$(az network vnet subnet show \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --vnet-name "$VNET_NAME" \
+    --name "$RESOLVER_OUTBOUND_SUBNET_NAME" \
+    --query id -o tsv)
+
+# Create outbound endpoint for the Private Resolver
+echo ""
+echo "Creating resolver outbound endpoint: $RESOLVER_OUTBOUND_ENDPOINT_NAME"
+az dns-resolver outbound-endpoint create \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --dns-resolver-name "$RESOLVER_NAME" \
+    --name "$RESOLVER_OUTBOUND_ENDPOINT_NAME" \
+    --location "$LOCATION" \
+    --id "$RESOLVER_OUTBOUND_SUBNET_ID"
+
+# Get the outbound endpoint ID for the forwarding ruleset
+OUTBOUND_ENDPOINT_ID=$(az dns-resolver outbound-endpoint show \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --dns-resolver-name "$RESOLVER_NAME" \
+    --name "$RESOLVER_OUTBOUND_ENDPOINT_NAME" \
+    --query id -o tsv)
+
+echo "Private Resolver outbound endpoint created."
+
+# Create DNS forwarding ruleset linked to the outbound endpoint
+echo ""
+echo "Creating DNS forwarding ruleset: $FORWARDING_RULESET_NAME"
+az dns-resolver forwarding-ruleset create \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --name "$FORWARDING_RULESET_NAME" \
+    --location "$LOCATION" \
+    --outbound-endpoints "[{id:$OUTBOUND_ENDPOINT_ID}]" \
+    --tags "Purpose=DNS-Security-Lab"
+
+# Link the forwarding ruleset to the hub VNet
+echo ""
+echo "Linking forwarding ruleset to hub VNet..."
+az dns-resolver vnet-link create \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --ruleset-name "$FORWARDING_RULESET_NAME" \
+    --name "vnet-link-hub-forwarding" \
+    --id "$VNET_ID"
+
+# Create forwarding rule for on-prem domain (contoso.com -> Windows DNS Server)
+echo ""
+echo "Creating forwarding rule: $FORWARDING_RULE_NAME ($ONPREM_DNS_DOMAIN -> $DNS_SERVER_STATIC_IP)"
+az dns-resolver forwarding-rule create \
+    --resource-group "$RESOURCE_GROUP_NAME" \
+    --ruleset-name "$FORWARDING_RULESET_NAME" \
+    --name "$FORWARDING_RULE_NAME" \
+    --domain-name "${ONPREM_DNS_DOMAIN}." \
+    --forwarding-rule-state "Enabled" \
+    --target-dns-servers "[{ip-address:$DNS_SERVER_STATIC_IP,port:53}]"
+
+echo "Forwarding rule created: ${ONPREM_DNS_DOMAIN} -> $DNS_SERVER_STATIC_IP:53"
 
 # --- On-Prem Environment ---
 
@@ -542,10 +616,17 @@ az vm run-command invoke \
         # Add conditional forwarder for blob.core.windows.net -> Private Resolver inbound IP
         Add-DnsServerConditionalForwarderZone -Name 'blob.core.windows.net' -MasterServers $RESOLVER_INBOUND_IP -PassThru
 
+        # Create forward lookup zone for on-prem domain (contoso.com)
+        Add-DnsServerPrimaryZone -Name '$ONPREM_DNS_DOMAIN' -ReplicationScope None -ZoneFile '${ONPREM_DNS_DOMAIN}.dns' -PassThru
+
+        # Add A record for the DNS server itself in contoso.com
+        Add-DnsServerResourceRecordA -ZoneName '$ONPREM_DNS_DOMAIN' -Name 'dns' -IPv4Address '$DNS_SERVER_STATIC_IP' -PassThru
+
         # Verify installation
         Get-WindowsFeature DNS
         Get-DnsServerForwarder
         Get-DnsServerZone
+        Get-DnsServerResourceRecord -ZoneName '$ONPREM_DNS_DOMAIN'
     "
 
 echo "Windows DNS Server configured successfully."
@@ -694,6 +775,9 @@ echo ""
 echo "--- Private Resolver Demo ---"
 echo "DNS Private Resolver: $RESOLVER_NAME"
 echo "Resolver Inbound IP: $RESOLVER_INBOUND_IP"
+echo "Resolver Outbound Endpoint: $RESOLVER_OUTBOUND_ENDPOINT_NAME"
+echo "Forwarding Ruleset: $FORWARDING_RULESET_NAME"
+echo "  - Rule: ${ONPREM_DNS_DOMAIN} -> $DNS_SERVER_STATIC_IP:53"
 echo "Storage Account: $PE_STORAGE_ACCOUNT_NAME (public access disabled)"
 echo "Private Endpoint: $PE_NAME (IP: $PE_PRIVATE_IP)"
 echo "Private DNS Zone: $PRIVATE_DNS_ZONE_NAME"
@@ -705,6 +789,7 @@ if [[ -n "$DNS_SERVER_PUBLIC_IP" ]]; then
     echo "  - Public IP: $DNS_SERVER_PUBLIC_IP (RDP allowed from $ALLOWED_PUBLIC_IP)"
 fi
 echo "  - Conditional forwarder: blob.core.windows.net -> $RESOLVER_INBOUND_IP"
+echo "  - DNS Zone: $ONPREM_DNS_DOMAIN (dns.$ONPREM_DNS_DOMAIN -> $DNS_SERVER_STATIC_IP)"
 echo "On-Prem Client: $ONPREM_CLIENT_VM_NAME (DNS: $DNS_SERVER_STATIC_IP)"
 echo "VNet Peering: hub <-> on-prem (Connected)"
 echo ""
@@ -734,4 +819,9 @@ echo "--- Test Private Endpoint Resolution (from $ONPREM_CLIENT_VM_NAME) ---"
 echo "nslookup ${PE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net"
 echo "  # Should return private IP: $PE_PRIVATE_IP"
 echo "  # Resolution path: Client -> Windows DNS -> Private Resolver -> Private DNS Zone"
+echo ""
+echo "--- Test Outbound Endpoint Resolution (from $VM_NAME) ---"
+echo "dig dns.${ONPREM_DNS_DOMAIN}"
+echo "  # Should return: $DNS_SERVER_STATIC_IP"
+echo "  # Resolution path: Ubuntu VM -> Azure DNS -> Outbound Endpoint -> Windows DNS Server"
 echo ""
